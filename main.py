@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from typing import Optional
 from typing import Optional
 import csv
 import io
@@ -125,24 +125,7 @@ init_db()
 # Pydantic models
 # ---------------------------------------------------------------------------
 
-class SessionSummary(BaseModel):
-    session_id: str
-    observer_lat: float
-    observer_lon: float
-    session_start: str
-    session_end: str
-    total_observations: int
-    unique_aircraft: int
-    n65: int
-    n70: int
-    n80: int
-    event_density: float
-    recovery_deficit: int
-    peak_dba: float
-    peak_loudness_sone: float
-    peak_annoyance: float
-    who_daily_average_dba: Optional[float] = None
-    who_exceedance_pct: Optional[float] = None
+
 
 
 # ---------------------------------------------------------------------------
