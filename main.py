@@ -1,0 +1,458 @@
+"""
+Aircraft Noise Tracker — Backend API
+Receives session uploads from the iOS app and serves aggregated data to the dashboard.
+Deploy on Render (free tier) as a Python web service.
+"""
+
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+from typing import Optional
+import csv
+import io
+import json
+import sqlite3
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+app = FastAPI(title="Aircraft Noise Tracker API", version="1.0.0")
+
+# ---------------------------------------------------------------------------
+# CORS — allow the dashboard frontend to call this API
+# Update origins when you have a real domain
+# ---------------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # tighten this once domain is set
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# Database setup — SQLite for simplicity on Render free tier
+# Render free tier has ephemeral disk; for persistence use Render's free
+# PostgreSQL or upgrade. SQLite is fine for development and MVP.
+# ---------------------------------------------------------------------------
+DB_PATH = os.environ.get("DB_PATH", "noise_tracker.db")
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # One row per observation (track or entry)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS observations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            timestamp TEXT,
+            type TEXT,
+            dba_level REAL,
+            loudness_sone REAL,
+            loudness_health_impact TEXT,
+            loudness_level_phon REAL,
+            loudness_context TEXT,
+            sharpness_acum REAL,
+            sharpness_health_impact TEXT,
+            annoyance REAL,
+            annoyance_health_impact TEXT,
+            onset_rate REAL,
+            onset_health_impact TEXT,
+            callsign TEXT,
+            icao24 TEXT,
+            type_code TEXT,
+            type_name TEXT,
+            registration TEXT,
+            operator TEXT,
+            flight_phase TEXT,
+            ground_distance_mi REAL,
+            slant_range_mi REAL,
+            altitude_ft REAL,
+            bearing REAL,
+            bearing_compass TEXT,
+            elevation_angle REAL,
+            speed_kts REAL,
+            climb_rate_fpm REAL,
+            approaching TEXT,
+            observer_lat REAL,
+            observer_lon REAL,
+            uploaded_at TEXT
+        )
+    """)
+
+    # One row per session with pre-computed summary stats from the app
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            session_id TEXT PRIMARY KEY,
+            observer_lat REAL,
+            observer_lon REAL,
+            session_start TEXT,
+            session_end TEXT,
+            total_observations INTEGER,
+            unique_aircraft INTEGER,
+            n65 INTEGER,
+            n70 INTEGER,
+            n80 INTEGER,
+            event_density REAL,
+            recovery_deficit INTEGER,
+            peak_dba REAL,
+            peak_loudness_sone REAL,
+            peak_annoyance REAL,
+            -- WHO benchmark fields (populated when app sends them)
+            who_daily_average_dba REAL,
+            who_exceedance_pct REAL,
+            uploaded_at TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
+
+class SessionSummary(BaseModel):
+    session_id: str
+    observer_lat: float
+    observer_lon: float
+    session_start: str
+    session_end: str
+    total_observations: int
+    unique_aircraft: int
+    n65: int
+    n70: int
+    n80: int
+    event_density: float
+    recovery_deficit: int
+    peak_dba: float
+    peak_loudness_sone: float
+    peak_annoyance: float
+    who_daily_average_dba: Optional[float] = None
+    who_exceedance_pct: Optional[float] = None
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/")
+def root():
+    return {"status": "Aircraft Noise Tracker API is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.post("/api/v1/upload-session")
+async def upload_session(
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    """
+    Main endpoint the iOS app POSTs to at session end.
+    Accepts a CSV file (the same format the app already exports).
+    
+    The app should POST as multipart/form-data:
+        POST /api/v1/upload-session
+        Content-Type: multipart/form-data
+        Body: file=<csv_file_bytes>
+    
+    Optional: include session summary fields as additional form fields,
+    or let the backend compute them from the CSV rows.
+    """
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV files accepted")
+
+    content = await file.read()
+    text = content.decode("utf-8-sig")  # handle BOM if present
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV is empty")
+
+    # Generate a session ID from first row timestamp + observer location
+    first_row = rows[0]
+    session_id = (
+        first_row.get("Timestamp", "").replace(" ", "_").replace(":", "-")
+        + "_"
+        + str(first_row.get("Observer Lat", "0"))
+    )
+    uploaded_at = datetime.now(timezone.utc).isoformat()
+
+    # -----------------------------------------------------------------------
+    # Insert observations
+    # -----------------------------------------------------------------------
+    cursor = db.cursor()
+    inserted = 0
+    dba_values = []
+    loudness_values = []
+    annoyance_values = []
+    aircraft_seen = set()
+
+    for row in rows:
+        try:
+            dba = float(row.get("dBA Level") or 0)
+            loudness = float(row.get("Loudness (sone)") or 0)
+            annoyance = float(row.get("Annoyance") or 0)
+            callsign = row.get("Callsign", "").strip()
+
+            dba_values.append(dba)
+            loudness_values.append(loudness)
+            annoyance_values.append(annoyance)
+            if callsign:
+                aircraft_seen.add(callsign)
+
+            cursor.execute("""
+                INSERT INTO observations (
+                    session_id, timestamp, type, dba_level,
+                    loudness_sone, loudness_health_impact,
+                    loudness_level_phon, loudness_context,
+                    sharpness_acum, sharpness_health_impact,
+                    annoyance, annoyance_health_impact,
+                    onset_rate, onset_health_impact,
+                    callsign, icao24, type_code, type_name,
+                    registration, operator, flight_phase,
+                    ground_distance_mi, slant_range_mi, altitude_ft,
+                    bearing, bearing_compass, elevation_angle,
+                    speed_kts, climb_rate_fpm, approaching,
+                    observer_lat, observer_lon, uploaded_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                session_id,
+                row.get("Timestamp"),
+                row.get("Type"),
+                dba,
+                loudness,
+                row.get("Loudness Health Impact"),
+                _float(row.get("Loudness Level (phon)")),
+                row.get("Loudness Context"),
+                _float(row.get("Sharpness (acum)")),
+                row.get("Sharpness Health Impact"),
+                annoyance,
+                row.get("Annoyance Health Impact"),
+                _float(row.get("Onset Rate (dB/s)")),
+                row.get("Onset Health Impact"),
+                callsign,
+                row.get("ICAO24"),
+                row.get("Type Code"),
+                row.get("Type Name"),
+                row.get("Registration"),
+                row.get("Operator"),
+                row.get("Flight Phase"),
+                _float(row.get("Ground Distance (mi)")),
+                _float(row.get("Slant Range (mi)")),
+                _float(row.get("Altitude (ft)")),
+                _float(row.get("Bearing")),
+                row.get("Bearing Compass"),
+                _float(row.get("Elevation Angle")),
+                _float(row.get("Speed (kts)")),
+                _float(row.get("Climb Rate (fpm)")),
+                row.get("Approaching"),
+                _float(row.get("Observer Lat")),
+                _float(row.get("Observer Lon")),
+                uploaded_at,
+            ))
+            inserted += 1
+        except Exception as e:
+            continue  # skip malformed rows, don't abort upload
+
+    # -----------------------------------------------------------------------
+    # Compute session summary from the CSV data
+    # -----------------------------------------------------------------------
+    timestamps = [r.get("Timestamp", "") for r in rows if r.get("Timestamp")]
+    session_start = min(timestamps) if timestamps else ""
+    session_end = max(timestamps) if timestamps else ""
+
+    # N65/N70/N80 — peak dBA per aircraft
+    aircraft_peaks: dict[str, float] = {}
+    for row in rows:
+        cs = row.get("Callsign", "").strip()
+        dba = _float(row.get("dBA Level"))
+        if cs and dba is not None:
+            aircraft_peaks[cs] = max(aircraft_peaks.get(cs, 0), dba)
+
+    n65 = sum(1 for v in aircraft_peaks.values() if v >= 65)
+    n70 = sum(1 for v in aircraft_peaks.values() if v >= 70)
+    n80 = sum(1 for v in aircraft_peaks.values() if v >= 80)
+
+    # Recovery deficit — inter-event gaps < 15 min between entry events
+    entry_times = sorted([
+        r.get("Timestamp", "") for r in rows
+        if r.get("Type") == "entry" and r.get("Timestamp")
+    ])
+    recovery_deficit = 0
+    for i in range(1, len(entry_times)):
+        try:
+            t1 = datetime.fromisoformat(entry_times[i-1])
+            t2 = datetime.fromisoformat(entry_times[i])
+            gap_min = (t2 - t1).total_seconds() / 60
+            if gap_min < 15:
+                recovery_deficit += 1
+        except Exception:
+            pass
+
+    # Event density (events per hour)
+    try:
+        t_start = datetime.fromisoformat(session_start)
+        t_end = datetime.fromisoformat(session_end)
+        duration_hr = max((t_end - t_start).total_seconds() / 3600, 0.01)
+        event_density = round(len(entry_times) / duration_hr, 1)
+    except Exception:
+        event_density = 0.0
+
+    cursor.execute("""
+        INSERT OR REPLACE INTO sessions (
+            session_id, observer_lat, observer_lon,
+            session_start, session_end,
+            total_observations, unique_aircraft,
+            n65, n70, n80,
+            event_density, recovery_deficit,
+            peak_dba, peak_loudness_sone, peak_annoyance,
+            uploaded_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        session_id,
+        _float(first_row.get("Observer Lat")),
+        _float(first_row.get("Observer Lon")),
+        session_start, session_end,
+        inserted, len(aircraft_seen),
+        n65, n70, n80,
+        event_density, recovery_deficit,
+        max(dba_values) if dba_values else 0,
+        max(loudness_values) if loudness_values else 0,
+        max(annoyance_values) if annoyance_values else 0,
+        uploaded_at,
+    ))
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "observations_inserted": inserted,
+        "n65": n65, "n70": n70, "n80": n80,
+        "recovery_deficit": recovery_deficit,
+        "unique_aircraft": len(aircraft_seen),
+    }
+
+
+@app.get("/api/v1/dashboard-summary")
+def dashboard_summary(db: sqlite3.Connection = Depends(get_db)):
+    """
+    Aggregated stats across ALL sessions — powers the Layer 1 dashboard.
+    """
+    cursor = db.cursor()
+
+    # Totals
+    cursor.execute("""
+        SELECT
+            COUNT(*) as total_sessions,
+            SUM(total_observations) as total_observations,
+            SUM(unique_aircraft) as total_aircraft,
+            SUM(n65) as total_n65,
+            SUM(n70) as total_n70,
+            SUM(n80) as total_n80,
+            SUM(recovery_deficit) as total_recovery_deficit,
+            MAX(peak_dba) as all_time_peak_dba,
+            MAX(peak_loudness_sone) as all_time_peak_sone,
+            AVG(event_density) as avg_event_density
+        FROM sessions
+    """)
+    totals = dict(cursor.fetchone() or {})
+
+    # Most recent 30 sessions for trend sparkline
+    cursor.execute("""
+        SELECT session_start, n70, recovery_deficit, peak_dba, event_density
+        FROM sessions
+        ORDER BY session_start DESC
+        LIMIT 30
+    """)
+    recent = [dict(r) for r in cursor.fetchall()]
+
+    # Aircraft type breakdown (top offenders by avg peak dBA)
+    cursor.execute("""
+        SELECT type_code, type_name, operator,
+               COUNT(DISTINCT callsign) as events,
+               MAX(dba_level) as peak_dba,
+               AVG(loudness_sone) as avg_loudness,
+               AVG(sharpness_acum) as avg_sharpness,
+               AVG(annoyance) as avg_annoyance
+        FROM observations
+        WHERE type_code IS NOT NULL AND type_code != ''
+        GROUP BY type_code
+        ORDER BY peak_dba DESC
+        LIMIT 10
+    """)
+    aircraft_breakdown = [dict(r) for r in cursor.fetchall()]
+
+    # Time-of-day distribution (hour buckets)
+    cursor.execute("""
+        SELECT
+            CAST(substr(timestamp, 12, 2) AS INTEGER) as hour,
+            COUNT(*) as events,
+            AVG(dba_level) as avg_dba
+        FROM observations
+        WHERE type = 'entry'
+        GROUP BY hour
+        ORDER BY hour
+    """)
+    hourly = [dict(r) for r in cursor.fetchall()]
+
+    return {
+        "totals": totals,
+        "recent_sessions": recent,
+        "aircraft_breakdown": aircraft_breakdown,
+        "hourly_distribution": hourly,
+    }
+
+
+@app.get("/api/v1/sessions")
+def list_sessions(limit: int = 50, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("""
+        SELECT * FROM sessions
+        ORDER BY session_start DESC
+        LIMIT ?
+    """, (limit,))
+    return [dict(r) for r in cursor.fetchall()]
+
+
+@app.get("/api/v1/sessions/{session_id}/observations")
+def session_observations(session_id: str, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("""
+        SELECT * FROM observations
+        WHERE session_id = ?
+        ORDER BY timestamp
+    """, (session_id,))
+    rows = cursor.fetchall()
+    if not rows:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
+def _float(val) -> Optional[float]:
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None

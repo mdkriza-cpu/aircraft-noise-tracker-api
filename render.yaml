@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: noise-tracker-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DB_PATH
+        value: /var/data/noise_tracker.db
+    disk:
+      name: noise-db
+      mountPath: /var/data
+      sizeGB: 1
