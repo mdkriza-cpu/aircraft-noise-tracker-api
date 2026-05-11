@@ -120,7 +120,7 @@ async def upload_session(
 
     content = await file.read()
     text = content.decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter=",")
 
     rows = list(reader)
     if not rows:
