@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Upload Session CSV</h2>
+<form id="f">
+  <input type="file" id="csv" accept=".csv"><br><br>
+  <button type="button" onclick="upload()">Upload to API</button>
+</form>
+<pre id="result">Response will appear here...</pre>
+<script>
+async function upload() {
+  const file = document.getElementById('csv').files[0];
+  if (!file) { alert('Please select a file first'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  document.getElementById('result').textContent = 'Uploading...';
+  try {
+    const r = await fetch('https://aircraft-noise-tracker-api.onrender.com/api/v1/upload-session', {method:'POST', body:fd});
+    const j = await r.json();
+    document.getElementById('result').textContent = JSON.stringify(j, null, 2);
+  } catch(e) {
+    document.getElementById('result').textContent = 'Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
