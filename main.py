@@ -1,5 +1,7 @@
 """
-Aircraft Noise Tracker — Backend API
+TrueNoise — Backend API
+Receives session uploads from the iOS app and serves aggregated data to the dashboard.
+Deploy on Render, database on Supabase (PostgreSQL).
 """
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
@@ -7,11 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import csv
 import io
-import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
 from datetime import datetime, timezone
 
-app = FastAPI(title="Aircraft Noise Tracker API", version="1.0.0")
+app = FastAPI(title="TrueNoise API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,22 +24,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "noise_tracker.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     try:
         yield conn
     finally:
         conn.close()
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DATABASE_URL)
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS observations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             session_id TEXT NOT NULL,
             timestamp TEXT,
             type TEXT,
@@ -102,7 +104,7 @@ init_db()
 
 @app.get("/")
 def root():
-    return {"status": "Aircraft Noise Tracker API is running"}
+    return {"status": "TrueNoise API is running"}
 
 
 @app.get("/health")
@@ -113,7 +115,7 @@ def health():
 @app.post("/api/v1/upload-session")
 async def upload_session(
     file: UploadFile = File(...),
-    db: sqlite3.Connection = Depends(get_db)
+    db = Depends(get_db)
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files accepted")
@@ -125,7 +127,6 @@ async def upload_session(
     rows = list(reader)
     if not rows:
         raise HTTPException(status_code=400, detail="CSV is empty")
-  
 
     first_row = rows[0]
     session_id = (
@@ -169,7 +170,7 @@ async def upload_session(
                     bearing, bearing_compass, elevation_angle,
                     speed_kts, climb_rate_fpm, approaching,
                     observer_lat, observer_lon, uploaded_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 session_id,
                 row.get("Timestamp"),
@@ -247,7 +248,7 @@ async def upload_session(
         event_density = 0.0
 
     cursor.execute("""
-        INSERT OR REPLACE INTO sessions (
+        INSERT INTO sessions (
             session_id, observer_lat, observer_lon,
             session_start, session_end,
             total_observations, unique_aircraft,
@@ -255,7 +256,19 @@ async def upload_session(
             event_density, recovery_deficit,
             peak_dba, peak_loudness_sone, peak_annoyance,
             uploaded_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (session_id) DO UPDATE SET
+            total_observations = EXCLUDED.total_observations,
+            unique_aircraft = EXCLUDED.unique_aircraft,
+            n65 = EXCLUDED.n65,
+            n70 = EXCLUDED.n70,
+            n80 = EXCLUDED.n80,
+            event_density = EXCLUDED.event_density,
+            recovery_deficit = EXCLUDED.recovery_deficit,
+            peak_dba = EXCLUDED.peak_dba,
+            peak_loudness_sone = EXCLUDED.peak_loudness_sone,
+            peak_annoyance = EXCLUDED.peak_annoyance,
+            uploaded_at = EXCLUDED.uploaded_at
     """, (
         session_id,
         _float(first_row.get("Observer Lat")),
@@ -283,8 +296,8 @@ async def upload_session(
 
 
 @app.get("/api/v1/dashboard-summary")
-def dashboard_summary(db: sqlite3.Connection = Depends(get_db)):
-    cursor = db.cursor()
+def dashboard_summary(db = Depends(get_db)):
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cursor.execute("""
         SELECT
@@ -319,7 +332,7 @@ def dashboard_summary(db: sqlite3.Connection = Depends(get_db)):
                AVG(annoyance) as avg_annoyance
         FROM observations
         WHERE type_code IS NOT NULL AND type_code != ''
-        GROUP BY type_code
+        GROUP BY type_code, type_name, operator
         ORDER BY peak_dba DESC
         LIMIT 10
     """)
@@ -327,7 +340,7 @@ def dashboard_summary(db: sqlite3.Connection = Depends(get_db)):
 
     cursor.execute("""
         SELECT
-            CAST(substr(timestamp, 12, 2) AS INTEGER) as hour,
+            CAST(SUBSTRING(timestamp, 12, 2) AS INTEGER) as hour,
             COUNT(*) as events,
             AVG(dba_level) as avg_dba
         FROM observations
@@ -346,22 +359,22 @@ def dashboard_summary(db: sqlite3.Connection = Depends(get_db)):
 
 
 @app.get("/api/v1/sessions")
-def list_sessions(limit: int = 50, db: sqlite3.Connection = Depends(get_db)):
-    cursor = db.cursor()
+def list_sessions(limit: int = 50, db = Depends(get_db)):
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("""
         SELECT * FROM sessions
         ORDER BY session_start DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
     return [dict(r) for r in cursor.fetchall()]
 
 
 @app.get("/api/v1/sessions/{session_id}/observations")
-def session_observations(session_id: str, db: sqlite3.Connection = Depends(get_db)):
-    cursor = db.cursor()
+def session_observations(session_id: str, db = Depends(get_db)):
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("""
         SELECT * FROM observations
-        WHERE session_id = ?
+        WHERE session_id = %s
         ORDER BY timestamp
     """, (session_id,))
     rows = cursor.fetchall()
