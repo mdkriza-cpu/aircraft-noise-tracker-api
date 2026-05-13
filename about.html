@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — TrueNoise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:       #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark:  #0F6E56;
+    --blue-light: #E6F1FB;
+    --red:        #E24B4A;
+    --gray-50:    #F8F7F4;
+    --gray-100:   #F1EFE8;
+    --gray-200:   #D3D1C7;
+    --gray-600:   #5F5E5A;
+    --text:       #1a1a18;
+    --text-muted: #5F5E5A;
+    --text-dim:   #888780;
+    --border:     rgba(0,0,0,0.09);
+    --border-mid: rgba(0,0,0,0.14);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+  }
+
+  .logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-wave svg { width: 30px; height: 22px; }
+  .logo-name { font-size: 18px; font-weight: 600; letter-spacing: -0.4px; color: var(--text); }
+  .logo-name span { color: var(--teal); }
+  .logo-tagline { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-group { margin-bottom: 20px; }
+  .nav-group-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; text-decoration: none; }
+  .nav-item:hover { background: var(--gray-100); color: var(--text); text-decoration: none; }
+  .nav-item.active { background: var(--teal-light); color: var(--teal-dark); font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .sidebar-footer a { color: var(--text-dim); }
+  .sidebar-footer a:hover { color: var(--teal); }
+
+  .main { flex: 1; min-width: 0; }
+
+  .topbar { padding: 14px 40px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #fff; position: sticky; top: 0; z-index: 10; }
+  .topbar-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
+  .content { padding: 48px 40px; max-width: 720px; }
+
+  .eyebrow { font-size: 11px; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 2.2rem; font-weight: 400; line-height: 1.2; color: var(--text); margin-bottom: 20px; }
+
+  .prose { font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 20px; }
+  .prose strong { color: var(--text); font-weight: 500; }
+
+  .pull-quote {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    font-style: italic;
+    color: var(--teal-dark);
+    border-left: 3px solid var(--teal);
+    padding: 12px 20px;
+    margin: 28px 0;
+    line-height: 1.5;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 36px 0; }
+
+  .section-label { font-size: 10px; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; font-weight: 400; color: var(--text); margin-bottom: 12px; }
+
+  .principle-list { list-style: none; margin: 0 0 20px; }
+  .principle-list li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .principle-list li:last-child { border-bottom: none; }
+  .principle-icon { font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+
+  /* CONTACT FORM */
+  .contact-form { margin-top: 20px; }
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 6px; letter-spacing: 0.02em; }
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid var(--border-mid);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--teal); }
+  .form-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  .form-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 24px;
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .submit-btn:hover { background: var(--teal-dark); }
+  .submit-btn:disabled { background: var(--gray-200); cursor: not-allowed; }
+
+  .form-success {
+    display: none;
+    padding: 16px 20px;
+    background: var(--teal-light);
+    border: 1px solid var(--teal);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--teal-dark);
+    margin-top: 16px;
+  }
+  .form-error {
+    display: none;
+    padding: 16px 20px;
+    background: #FCEBEB;
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    font-size: 14px;
+    color: #791F1F;
+    margin-top: 16px;
+  }
+
+  /* MOBILE NAV */
+  .mobile-nav { display: none; position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+  .mobile-logo { font-size: 16px; font-weight: 600; color: var(--text); }
+  .mobile-logo span { color: var(--teal); }
+  .hamburger { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 16px; color: var(--text-muted); }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-panel { background: #fff; width: 260px; height: 100%; padding: 20px 16px; overflow-y: auto; }
+  .mobile-menu-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); margin-bottom: 16px; display: block; }
+
+  @media (max-width: 768px) {
+    .app { flex-direction: column; }
+    .sidebar { display: none; }
+    .mobile-nav { display: flex; }
+    .topbar { padding: 12px 16px; }
+    .content { padding: 28px 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .page-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-nav">
+  <div class="mobile-logo">True<span>Noise</span></div>
+  <button class="hamburger" onclick="openMenu()" aria-label="Open navigation">☰</button>
+</div>
+
+<div class="mobile-menu" id="mobileMenu" onclick="closeMenuOutside(event)">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+    <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:20px;">True<span style="color:var(--teal)">Noise</span></div>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Data</div>
+    <a href="index.html" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Health dashboard</a>
+    <a href="index.html#aircraft" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Aircraft analysis</a>
+    <a href="index.html#time" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Time patterns</a>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin:16px 0 8px;">Research</div>
+    <a href="methodology.html" class="nav-item" style="display:flex; margin-bottom:2px;">Methodology</a>
+    <a href="data.html" class="nav-item" style="display:flex; margin-bottom:2px;">Download data</a>
+    <a href="about.html" class="nav-item active" style="display:flex;">About</a>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-wave">
+          <svg viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 11 Q5.5 4 9 11 Q12.5 18 16 11 Q19.5 4 23 11 Q26.5 18 30 11" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div><div class="logo-name">True<span>Noise</span></div></div>
+      </div>
+      <div class="logo-tagline">Environmental noise research</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <a href="index.html" class="nav-item"><span class="nav-icon">📊</span> Health dashboard</a>
+        <a href="index.html#aircraft" class="nav-item"><span class="nav-icon">✈</span> Aircraft analysis</a>
+        <a href="index.html#time" class="nav-item"><span class="nav-icon">🕐</span> Time patterns</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Research</div>
+        <a href="methodology.html" class="nav-item"><span class="nav-icon">🔬</span> Methodology</a>
+        <a href="data.html" class="nav-item"><span class="nav-icon">⬇</span> Download data</a>
+        <a href="about.html" class="nav-item active"><span class="nav-icon">ℹ</span> About</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Independent community monitoring.<br>
+      Not affiliated with any airport,<br>airline, or government agency.<br><br>
+      <a href="methodology.html">Methodology</a> · <a href="data.html">Data</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">About TrueNoise</div>
+        <div class="topbar-sub">Who we are and why this exists</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="eyebrow">About this project</div>
+      <h1 class="page-title">Noise is a public health problem.<br>We're measuring it.</h1>
+
+      <p class="prose">
+        TrueNoise was founded by <strong>Marty Krizan</strong>, a resident of Ashbrook in Severn,
+        Maryland — a neighborhood directly under one of the busiest departure corridors at
+        Baltimore/Washington International Airport. Like many of his neighbors, Marty noticed
+        the noise. Unlike most, he decided to measure it.
+      </p>
+
+      <p class="prose">
+        What started as curiosity became a rigorous measurement project. Using a calibrated
+        iOS app, real-time ADS-B aircraft tracking, and a psychoacoustic analysis pipeline
+        grounded in ISO and DIN standards, TrueNoise captures not just how loud aircraft are —
+        but how that noise affects the human body. Loudness, sharpness, annoyance, onset rate,
+        and recovery deficit are all measured and mapped to peer-reviewed health research.
+      </p>
+
+      <div class="pull-quote">
+        "TrueNoise is open to any community member who wants to contribute measurements.
+        If you live near a major noise source and want to help build this dataset,
+        we'd love to hear from you."
+      </div>
+
+      <p class="prose">
+        TrueNoise's first project is aircraft noise — the most pervasive and well-documented
+        source of community noise harm. The measurement methodology is grounded in international
+        psychoacoustic standards that apply equally to road traffic, rail, and industrial noise,
+        and the platform is designed to grow in that direction. But for now, the focus is on
+        getting the aircraft noise dataset right.
+      </p>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Our principles</div>
+      <div class="section-title">What we stand for</div>
+
+      <ul class="principle-list">
+        <li>
+          <span class="principle-icon">🔬</span>
+          <div><strong>Rigorous methodology.</strong> Every measurement follows published international standards — ISO 532-1 for loudness, DIN 45692 for sharpness, IEC 61672 for sound level measurement. Our equipment has been validated against a Type 2 reference meter. We don't guess.</div>
+        </li>
+        <li>
+          <span class="principle-icon">📖</span>
+          <div><strong>Published evidence, not opinion.</strong> Every health claim on this site is sourced to peer-reviewed epidemiological research — HYENA, RANCH, ANASE, WHO guidelines. We connect measurements to consequences that scientists have already documented.</div>
+        </li>
+        <li>
+          <span class="principle-icon">🌐</span>
+          <div><strong>Open data.</strong> All raw observations are freely downloadable. Researchers, journalists, advocates, and regulators are welcome to use the data. We ask only for attribution.</div>
+        </li>
+        <li>
+          <span class="principle-icon">⚖️</span>
+          <div><strong>Independence.</strong> TrueNoise is not affiliated with any airport, airline, government agency, or advocacy organization. We have no financial relationship with any party that has an interest in the outcome of our measurements. The data is what it is.</div>
+        </li>
+        <li>
+          <span class="principle-icon">🤝</span>
+          <div><strong>Collaboration over confrontation.</strong> We believe airlines, airports, and regulators are capable partners in solving this problem. Our goal is to provide the independent evidence base that supports constructive, collegial dialogue — and to work with the industry toward solutions, not against it.</div>
+        </li>
+      </ul>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Get involved</div>
+      <div class="section-title">Join the project</div>
+
+      <p class="prose">
+        Whether you want to contribute measurements, ask about the methodology, explore a
+        research collaboration, or simply ask a question — we want to hear from you.
+        Your email address stays private and will never be shared.
+      </p>
+
+      <form class="contact-form" id="contactForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="name">Your name</label>
+            <input class="form-input" type="text" id="name" name="name" placeholder="Jane Smith" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email">Email address</label>
+            <input class="form-input" type="email" id="email" name="email" placeholder="jane@example.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reason">I'm interested in…</label>
+          <select class="form-select" id="reason" name="reason">
+            <option value="">Select one</option>
+            <option value="contribute">Contributing measurements from my neighborhood</option>
+            <option value="research">Research collaboration or citation</option>
+            <option value="media">Media or press inquiry</option>
+            <option value="methodology">Questions about the methodology</option>
+            <option value="policy">Policy or advocacy work</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="location">Your general location <span style="font-weight:400; color:var(--text-dim)">(optional)</span></label>
+          <input class="form-input" type="text" id="location" name="location" placeholder="e.g. Linthicum, MD or near Heathrow">
+          <div class="form-hint">Helps us understand the geographic reach of the project.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="message">Message</label>
+          <textarea class="form-textarea" id="message" name="message" placeholder="Tell us a bit about your situation or what you'd like to know…" required></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Send message →
+        </button>
+
+        <div class="form-success" id="formSuccess">
+          Thank you — your message has been received. We'll be in touch soon.
+        </div>
+        <div class="form-error" id="formError">
+          Something went wrong. Please try again or email us directly.
+        </div>
+      </form>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function openMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+  function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+  function closeMenuOutside(e) { if (e.target === document.getElementById('mobileMenu')) closeMenu(); }
+
+  document.getElementById('contactForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    const formData = {
+      name: document.getElementById('name').value,
+      email: document.getElementById('email').value,
+      reason: document.getElementById('reason').value,
+      location: document.getElementById('location').value,
+      message: document.getElementById('message').value,
+    };
+
+    try {
+      const res = await fetch('https://formspree.io/f/maqvkvjk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        document.getElementById('formSuccess').style.display = 'block';
+        document.getElementById('formError').style.display = 'none';
+        document.getElementById('contactForm').reset();
+      } else {
+        throw new Error('Form submission failed');
+      }
+    } catch (err) {
+      document.getElementById('formError').style.display = 'block';
+      document.getElementById('formSuccess').style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = 'Send message →';
+    }
+  });
+</script>
+</body>
+</html>
+Done
+Select all of that — everything from <!DOCTYPE html> to </html> — copy it, then:
+Go to your GitHub repo
+Click Add file → Create new file
+Name it about.html
+Paste into the text area
+Commit to main
+Let me know when it's committed!
+
+
