@@ -157,21 +157,22 @@ async def upload_session(
                 aircraft_seen.add(callsign)
 
             cursor.execute("""
-                INSERT INTO observations (
-                    session_id, timestamp, type, dba_level,
-                    loudness_sone, loudness_health_impact,
-                    loudness_level_phon, loudness_context,
-                    sharpness_acum, sharpness_health_impact,
-                    annoyance, annoyance_health_impact,
-                    onset_rate, onset_health_impact,
-                    callsign, icao24, type_code, type_name,
-                    registration, operator, flight_phase,
-                    ground_distance_mi, slant_range_mi, altitude_ft,
-                    bearing, bearing_compass, elevation_angle,
-                    speed_kts, climb_rate_fpm, approaching,
-                    observer_lat, observer_lon, uploaded_at
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
+    INSERT INTO observations (
+        session_id, timestamp, type, dba_level,
+        loudness_sone, loudness_health_impact,
+        loudness_level_phon, loudness_context,
+        sharpness_acum, sharpness_health_impact,
+        annoyance, annoyance_health_impact,
+        onset_rate, onset_health_impact,
+        callsign, icao24, type_code, type_name,
+        registration, operator, flight_phase,
+        ground_distance_mi, slant_range_mi, altitude_ft,
+        bearing, bearing_compass, elevation_angle,
+        speed_kts, climb_rate_fpm, approaching,
+        observer_lat, observer_lon, uploaded_at
+    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    ON CONFLICT (session_id, timestamp, callsign) DO NOTHING
+""", (
                 session_id,
                 row.get("Timestamp"),
                 row.get("Type"),
