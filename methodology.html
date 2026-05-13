@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Methodology — TrueNoise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:       #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark:  #0F6E56;
+    --red:        #E24B4A;
+    --red-light:  #FCEBEB;
+    --amber:      #BA7517;
+    --amber-light:#FAEEDA;
+    --gray-50:    #F8F7F4;
+    --gray-100:   #F1EFE8;
+    --gray-200:   #D3D1C7;
+    --text:       #1a1a18;
+    --text-muted: #5F5E5A;
+    --text-dim:   #888780;
+    --border:     rgba(0,0,0,0.09);
+    --border-mid: rgba(0,0,0,0.14);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px; min-width: 220px;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; background: #fff;
+  }
+  .logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-wave svg { width: 30px; height: 22px; }
+  .logo-name { font-size: 18px; font-weight: 600; letter-spacing: -0.4px; color: var(--text); }
+  .logo-name span { color: var(--teal); }
+  .logo-tagline { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-group { margin-bottom: 20px; }
+  .nav-group-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; transition: background 0.15s, color 0.15s; }
+  .nav-item:hover { background: var(--gray-100); color: var(--text); text-decoration: none; }
+  .nav-item.active { background: var(--teal-light); color: var(--teal-dark); font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .sidebar-footer a { color: var(--text-dim); }
+  .sidebar-footer a:hover { color: var(--teal); }
+
+  /* ── SECTION NAV (sticky on desktop) ── */
+  .section-nav {
+    width: 180px; min-width: 180px;
+    border-left: 1px solid var(--border);
+    padding: 24px 16px;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto;
+    font-size: 12px;
+  }
+  .section-nav-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; font-family: 'DM Mono', monospace; }
+  .section-nav a { display: block; color: var(--text-dim); padding: 4px 0; border-left: 2px solid transparent; padding-left: 8px; margin-bottom: 2px; font-size: 12px; }
+  .section-nav a:hover { color: var(--teal); text-decoration: none; border-left-color: var(--teal); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; min-width: 0; }
+
+  .topbar {
+    padding: 14px 40px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-size: 14px; font-weight: 500; }
+  .topbar-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
+  /* ── CONTENT ── */
+  .content { padding: 48px 40px; max-width: 780px; }
+
+  .page-eyebrow { font-size: 11px; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 2.2rem; font-weight: 400; line-height: 1.2; color: var(--text); margin-bottom: 16px; }
+  .page-intro { font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 40px; max-width: 680px; }
+
+  /* Bottom line box */
+  .bottom-line {
+    background: var(--teal-light);
+    border: 1px solid var(--teal);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+  }
+  .bottom-line-label { font-size: 10px; color: var(--teal-dark); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+  .bottom-line p { font-size: 14px; color: var(--text); line-height: 1.7; }
+  .bottom-line p + p { margin-top: 10px; }
+
+  /* Sections */
+  .method-section { margin-bottom: 52px; padding-top: 8px; }
+  .method-section-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .method-section h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 400; color: var(--text); margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+  .prose { font-size: 14px; color: var(--text-muted); line-height: 1.8; margin-bottom: 16px; }
+  .prose strong { color: var(--text); font-weight: 500; }
+  .prose em { font-style: italic; }
+  .prose code { font-family: 'DM Mono', monospace; font-size: 12px; background: var(--gray-100); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+  /* Spec list */
+  .spec-list { list-style: none; margin: 12px 0 20px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .spec-list li { display: flex; gap: 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .spec-list li:last-child { border-bottom: none; }
+  .spec-key { width: 220px; min-width: 220px; padding: 9px 14px; background: var(--gray-50); color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .spec-val { padding: 9px 14px; color: var(--text); flex: 1; line-height: 1.5; }
+
+  /* Validation table */
+  .val-table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 13px; }
+  .val-table th { text-align: left; font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; padding: 8px 12px; border-bottom: 1px solid var(--border-mid); font-family: 'DM Mono', monospace; }
+  .val-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .val-table tr:last-child td { border-bottom: none; font-weight: 500; background: var(--gray-50); }
+
+  /* Limitation items */
+  .limitation { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .limitation:last-child { border-bottom: none; }
+  .limitation-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); min-width: 24px; padding-top: 2px; }
+  .limitation-body { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+  .limitation-body strong { color: var(--text); font-weight: 500; }
+
+  /* Closing box */
+  .closing-box { background: var(--gray-50); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-top: 48px; }
+  .closing-box p { font-size: 14px; color: var(--text-muted); line-height: 1.8; }
+  .closing-box p + p { margin-top: 12px; }
+  .closing-box em { font-style: italic; color: var(--text); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 0 0 48px; }
+
+  /* Reference list */
+  .ref-list { list-style: none; }
+  .ref-list li { font-size: 13px; color: var(--text-muted); padding: 6px 0; border-bottom: 1px solid var(--border); line-height: 1.6; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .ref-list li:last-child { border-bottom: none; }
+
+  /* MOBILE NAV */
+  .mobile-nav { display: none; position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+  .mobile-logo { font-size: 16px; font-weight: 600; color: var(--text); }
+  .mobile-logo span { color: var(--teal); }
+  .hamburger { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 16px; color: var(--text-muted); }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-panel { background: #fff; width: 260px; height: 100%; padding: 20px 16px; overflow-y: auto; }
+  .mobile-menu-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); margin-bottom: 16px; display: block; }
+
+  @media (max-width: 1100px) { .section-nav { display: none; } }
+  @media (max-width: 768px) {
+    .app { flex-direction: column; }
+    .sidebar { display: none; }
+    .mobile-nav { display: flex; }
+    .topbar { padding: 12px 16px; }
+    .content { padding: 28px 16px; }
+    .spec-key { width: 140px; min-width: 140px; }
+    .page-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-nav">
+  <div class="mobile-logo">True<span>Noise</span></div>
+  <button class="hamburger" onclick="openMenu()" aria-label="Open navigation">☰</button>
+</div>
+
+<div class="mobile-menu" id="mobileMenu" onclick="closeMenuOutside(event)">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+    <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:20px;">True<span style="color:var(--teal)">Noise</span></div>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Data</div>
+    <a href="index.html" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Health dashboard</a>
+    <a href="index.html#aircraft" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Aircraft analysis</a>
+    <a href="index.html#time" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Time patterns</a>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin:16px 0 8px;">Research</div>
+    <a href="methodology.html" class="nav-item active" style="display:flex; margin-bottom:2px;">Methodology</a>
+    <a href="data.html" class="nav-item" style="display:flex; margin-bottom:2px;">Download data</a>
+    <a href="about.html" class="nav-item" style="display:flex;">About</a>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-wave">
+          <svg viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 11 Q5.5 4 9 11 Q12.5 18 16 11 Q19.5 4 23 11 Q26.5 18 30 11" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div><div class="logo-name">True<span>Noise</span></div></div>
+      </div>
+      <div class="logo-tagline">Environmental noise research</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <a href="index.html" class="nav-item"><span class="nav-icon">📊</span> Health dashboard</a>
+        <a href="index.html#aircraft" class="nav-item"><span class="nav-icon">✈</span> Aircraft analysis</a>
+        <a href="index.html#time" class="nav-item"><span class="nav-icon">🕐</span> Time patterns</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Research</div>
+        <a href="methodology.html" class="nav-item active"><span class="nav-icon">🔬</span> Methodology</a>
+        <a href="data.html" class="nav-item"><span class="nav-icon">⬇</span> Download data</a>
+        <a href="about.html" class="nav-item"><span class="nav-icon">ℹ</span> About</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Independent community monitoring.<br>
+      Not affiliated with any airport,<br>airline, or government agency.<br><br>
+      <a href="data.html">Download data</a> · <a href="about.html">About</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Measurement methodology</div>
+        <div class="topbar-sub">How TrueNoise data is collected and validated</div>
+      </div>
+    </div>
+
+    <div style="display:flex;">
+      <div class="content">
+
+        <div class="page-eyebrow">Methodology</div>
+        <h1 class="page-title">How we measure aircraft noise</h1>
+        <p class="page-intro">
+          TrueNoise measures community aircraft noise impact using a calibrated iPhone-based system.
+          This page documents exactly how the measurements are made, so that the data can be
+          evaluated, replicated, and challenged on its merits.
+        </p>
+
+        <!-- BOTTOM LINE -->
+        <div class="bottom-line">
+          <div class="bottom-line-label">Bottom line</div>
+          <p>Our system has been validated against a TA657A Type 2 reference sound level meter
+          during a live Airbus A320 overflight. The two instruments agreed within <strong>1.4 dBA
+          on peak SPL</strong> — well inside the ±2 dB unit-to-unit tolerance that IEC 61672 permits
+          between Class 2 meters. This was a real outdoor measurement with wind and ambient noise,
+          not a controlled laboratory tone.</p>
+          <p>We measure at the receptor — where people actually live and sleep — because that is
+          the measurement that matters for health outcomes. WHO, EPA, and ICAO noise-impact research
+          all use receptor-based exposure, not source-based emission.</p>
+        </div>
+
+        <!-- SECTION 1: HARDWARE -->
+        <div class="method-section" id="s1">
+          <div class="method-section-num">Section 1</div>
+          <h2>Hardware</h2>
+
+          <p class="prose"><strong>Microphone</strong></p>
+          <ul class="spec-list">
+            <li><span class="spec-key">Model</span><span class="spec-val">PoP Voice Professional Lavalier omnidirectional condenser</span></li>
+            <li><span class="spec-key">Frequency range</span><span class="spec-val">20 Hz – 16 kHz</span></li>
+            <li><span class="spec-key">Signal-to-noise ratio</span><span class="spec-val">80 dB</span></li>
+            <li><span class="spec-key">Connection</span><span class="spec-val">Wired (no Bluetooth codec compression or variable latency)</span></li>
+            <li><span class="spec-key">Wind protection</span><span class="spec-val">Foam + fur windshield (per ISO 1996 guidance)</span></li>
+            <li><span class="spec-key">Polar pattern</span><span class="spec-val">Omnidirectional</span></li>
+          </ul>
+
+          <p class="prose">
+            The frequency range fully covers the A-weighted measurement band: A-weighting rolls
+            off by ~50 dB below 20 Hz and ~7 dB above 16 kHz, so this microphone captures
+            everything the A-weighting curve cares about. The omnidirectional pattern is deliberate —
+            aircraft can fly in from any bearing, and equal sensitivity in all directions avoids
+            the orientation bias a cardioid pattern would introduce.
+          </p>
+          <p class="prose">
+            This is a consumer-grade microphone, not an IEC 61672-certified measurement microphone.
+            We address that directly in <a href="#s6">§6 Calibration</a> and <a href="#s8">§8 Limitations</a>.
+          </p>
+
+          <p class="prose" style="margin-top:20px;"><strong>Phone</strong></p>
+          <ul class="spec-list">
+            <li><span class="spec-key">Device</span><span class="spec-val">Apple iPhone with A-series silicon</span></li>
+            <li><span class="spec-key">Audio session mode</span><span class="spec-val">.measurement (disables all processing — see §2)</span></li>
+            <li><span class="spec-key">Calibration</span><span class="spec-val">Per-device offset stored locally and applied to every measurement</span></li>
+          </ul>
+        </div>
+
+        <!-- SECTION 2: AUDIO CAPTURE -->
+        <div class="method-section" id="s2">
+          <div class="method-section-num">Section 2</div>
+          <h2>iOS audio capture</h2>
+          <p class="prose">
+            We use Apple's <code>AVAudioEngine</code> framework with the audio session category set
+            to <code>.playAndRecord</code> and mode set to <code>.measurement</code>.
+          </p>
+          <p class="prose">
+            <strong>This mode is the critical detail.</strong> By default, iOS aggressively processes
+            microphone input for voice calls and video — automatic gain control, noise suppression,
+            voice isolation, and echo cancellation are all applied. None of these are acceptable for
+            an instrument. <code>.measurement</code> mode disables all of them, exposing the raw
+            uncompressed PCM signal exactly as the microphone capsule delivers it.
+          </p>
+          <ul class="spec-list">
+            <li><span class="spec-key">Tap buffer size</span><span class="spec-val">1024 frames (~21 ms at 48 kHz)</span></li>
+            <li><span class="spec-key">Sample format</span><span class="spec-val">32-bit float</span></li>
+            <li><span class="spec-key">Sample rate</span><span class="spec-val">Hardware-native (typically 48 kHz)</span></li>
+          </ul>
+          <p class="prose">
+            Critics sometimes assume "phone" implies "consumer audio pipeline." With
+            <code>.measurement</code> mode, it does not.
+          </p>
+        </div>
+
+        <!-- SECTION 3: A-WEIGHTING -->
+        <div class="method-section" id="s3">
+          <div class="method-section-num">Section 3</div>
+          <h2>A-weighting filter</h2>
+          <p class="prose">
+            We implement A-weighting per IEC 61672, the international standard for sound level meters.
+          </p>
+          <p class="prose">
+            The filter is constructed as <strong>three cascaded biquad sections</strong> derived via
+            bilinear transform from the analog s-domain transfer function. The four canonical IEC
+            pole frequencies are used directly:
+          </p>
+          <ul class="spec-list">
+            <li><span class="spec-key">f₁</span><span class="spec-val">20.598997 Hz</span></li>
+            <li><span class="spec-key">f₂</span><span class="spec-val">107.65265 Hz</span></li>
+            <li><span class="spec-key">f₃</span><span class="spec-val">737.86223 Hz</span></li>
+            <li><span class="spec-key">f₄</span><span class="spec-val">12194.217 Hz</span></li>
+          </ul>
+          <p class="prose">
+            Section 1 is a 2nd-order high-pass at f₁. Section 2 is a 2nd-order high-pass
+            combining the f₂ and f₃ poles. Section 3 is a 2nd-order low-pass at f₄. The overall
+            response is normalized so the gain at 1 kHz is exactly 0 dB — the IEC reference point.
+          </p>
+          <p class="prose">
+            These are the same pole frequencies used in every certified sound level meter
+            manufactured. A-weighting compensates for the frequency response of the human ear,
+            which is roughly 30 dB less sensitive at 100 Hz than at 1 kHz. Measuring aircraft noise
+            without A-weighting would dramatically overstate low-frequency content that humans don't
+            perceive as loud.
+          </p>
+        </div>
+
+        <!-- SECTION 4: FFT -->
+        <div class="method-section" id="s4">
+          <div class="method-section-num">Section 4</div>
+          <h2>FFT and ⅓-octave band analysis</h2>
+          <p class="prose">
+            A-weighted SPL is the headline number, but it collapses the entire audible spectrum
+            into a single decibel value. For finer analysis, we compute a ⅓-octave spectrum on
+            every measurement window.
+          </p>
+          <ul class="spec-list">
+            <li><span class="spec-key">FFT engine</span><span class="spec-val">Apple Accelerate / vDSP — the same SIMD-optimized DSP library Apple uses in Logic Pro and that ships in every professional iOS audio plugin</span></li>
+            <li><span class="spec-key">FFT size</span><span class="spec-val">4096 samples (~85 ms window at 48 kHz)</span></li>
+            <li><span class="spec-key">Window function</span><span class="spec-val">Hann window with energy normalization — band levels are calibrated in absolute SPL, not arbitrary spectral units</span></li>
+            <li><span class="spec-key">Frequency resolution</span><span class="spec-val">~11.7 Hz per bin</span></li>
+            <li><span class="spec-key">Bands</span><span class="spec-val">28 standard ⅓-octave bands, 25 Hz – 12.5 kHz (ANSI S1.11 / IEC 61260 center frequencies)</span></li>
+            <li><span class="spec-key">Band power</span><span class="spec-val">Summed across all FFT bins within each band's bounds (edge factor 2^(1/6))</span></li>
+          </ul>
+          <p class="prose">
+            The A-series chip's vector and neural processing capabilities exceed what real-time
+            spectral analysis requires by orders of magnitude. A 4096-point FFT executes in well
+            under a millisecond. Doubts about "can a phone do FFT accurately" reflect assumptions
+            about pre-2010 phone hardware.
+          </p>
+        </div>
+
+        <!-- SECTION 5: PSYCHOACOUSTICS -->
+        <div class="method-section" id="s5">
+          <div class="method-section-num">Section 5</div>
+          <h2>Psychoacoustic analysis</h2>
+          <p class="prose">
+            A-weighted SPL is a 1936 model of how humans perceive loudness. It is the regulatory
+            standard worldwide, but it is known to be incomplete — particularly for impulsive sounds,
+            tonal components, and the spectral character that makes some noises feel sharper or more
+            annoying than their dBA value would suggest.
+          </p>
+          <p class="prose">
+            We compute, <em>on top of</em> A-weighting, three psychoacoustic metrics from the
+            acoustics literature:
+          </p>
+          <ul class="spec-list">
+            <li><span class="spec-key">Zwicker loudness (sone)</span><span class="spec-val">Simplified ISO 532 B. Computes specific loudness per Bark critical band, integrates across the Bark scale. Uses ISO 226 threshold-in-quiet values per band.</span></li>
+            <li><span class="spec-key">Loudness level (phon)</span><span class="spec-val">Derived from total loudness in sones. Numerically equals the dB SPL of a 1 kHz tone perceived as equally loud.</span></li>
+            <li><span class="spec-key">Sharpness (acum)</span><span class="spec-val">Per DIN 45692. Weights high-frequency specific loudness to capture the perceptual difference between a low rumble and a piercing whine at the same dBA.</span></li>
+            <li><span class="spec-key">Psychoacoustic annoyance</span><span class="spec-val">Zwicker's combined model synthesizing loudness and sharpness into a single annoyance index.</span></li>
+          </ul>
+          <p class="prose">
+            These metrics matter because two aircraft producing the same dBA can produce very
+            different real-world annoyance — and annoyance is the dose-response variable that WHO
+            uses for sleep disturbance and cardiovascular health endpoints. We provide psychoacoustic
+            analysis in addition to A-weighted SPL, not instead of it.
+          </p>
+        </div>
+
+        <!-- SECTION 6: CALIBRATION -->
+        <div class="method-section" id="s6">
+          <div class="method-section-num">Section 6</div>
+          <h2>Calibration</h2>
+          <p class="prose">
+            Every iPhone unit, microphone unit, and microphone connection has slightly different
+            acoustic gain. A measurement system that does not address this is not a measurement system.
+          </p>
+          <p class="prose">
+            We calibrate per device. The app stores a calibration offset (in dB) that converts the
+            device's raw signal level to absolute SPL. Two offset profiles are supported:
+          </p>
+          <ul class="spec-list">
+            <li><span class="spec-key">Internal mic offset</span><span class="spec-val">+108 dB (averaged across multiple calibration sessions on the validation iPhone)</span></li>
+            <li><span class="spec-key">External mic offset</span><span class="spec-val">+99 dB (PoP Voice lavalier, averaged similarly)</span></li>
+            <li><span class="spec-key">Session-to-session variability</span><span class="spec-val">±3 dB observed — offset is averaged across multiple calibration sessions</span></li>
+            <li><span class="spec-key">Reference instrument</span><span class="spec-val">TA657A Type 2 sound level meter</span></li>
+          </ul>
+          <p class="prose">
+            The offset is determined by simultaneous measurement against a reference instrument and
+            is stored locally in the app. This is the same approach used by any professional sound
+            level meter: every unit is individually calibrated, and calibration is checked
+            periodically against a reference.
+          </p>
+        </div>
+
+        <!-- SECTION 7: VALIDATION -->
+        <div class="method-section" id="s7">
+          <div class="method-section-num">Section 7</div>
+          <h2>Validation</h2>
+          <p class="prose">
+            On 9 May 2026, the system was compared against a TA657A Type 2 sound level meter during
+            a clearly identified Airbus A320 overflight at a documented residential location in
+            Severn, Maryland:
+          </p>
+
+          <table class="val-table">
+            <thead>
+              <tr>
+                <th>Instrument</th>
+                <th>Peak SPL</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TA657A (Type 2 reference)</td>
+                <td>72.4 dBA</td>
+                <td>IEC 61672 Class 2</td>
+              </tr>
+              <tr>
+                <td>TrueNoise app (external mic, +99 dB offset)</td>
+                <td>71.0 dBA</td>
+                <td>PoP Voice lavalier</td>
+              </tr>
+              <tr>
+                <td>Delta</td>
+                <td>1.4 dB</td>
+                <td>Within IEC 61672 Class 2 tolerance (±2 dB)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="prose">
+            IEC 61672 permits ±2 dB of unit-to-unit variation between two Class 2 instruments
+            measuring the same signal. Our system agreed with the reference within that tolerance,
+            in real outdoor conditions with wind and ambient noise — not a controlled tone in an
+            anechoic chamber.
+          </p>
+          <p class="prose">
+            This is one validated comparison. We are continuing to collect comparison data points
+            across different aircraft types and weather conditions, and we will publish the running
+            table as it grows.
+          </p>
+        </div>
+
+        <!-- SECTION 8: LIMITATIONS -->
+        <div class="method-section" id="s8">
+          <div class="method-section-num">Section 8</div>
+          <h2>Limitations</h2>
+          <p class="prose">
+            Honest disclosure is part of credibility. The following are known limitations of the
+            current system:
+          </p>
+
+          <div class="limitation">
+            <div class="limitation-num">1</div>
+            <div class="limitation-body"><strong>The microphone is not IEC 61672 certified.</strong> It is a consumer omnidirectional condenser with a manufacturer-published frequency range but no individual calibration certificate or temperature-stability specification. We rely on empirical validation against the TA657A rather than traceable factory calibration.</div>
+          </div>
+          <div class="limitation">
+            <div class="limitation-num">2</div>
+            <div class="limitation-body"><strong>Sample size is small.</strong> Our validation dataset currently rests on a single matched A320 overflight. The methodology is sound regardless of sample size, but the empirical confidence interval narrows as we collect more comparisons. We will publish all future comparisons, including ones that disagree.</div>
+          </div>
+          <div class="limitation">
+            <div class="limitation-num">3</div>
+            <div class="limitation-body"><strong>Measurements are displayed as 2-second peak-hold dBA.</strong> The reported value is the maximum A-weighted SPL observed during each 2-second window — closest in character to LAFmax (fast time-weighted maximum) in IEC 61672 terms. We do not currently report continuous LAeq integration over arbitrary periods.</div>
+          </div>
+          <div class="limitation">
+            <div class="limitation-num">4</div>
+            <div class="limitation-body"><strong>We measure at the receptor, not at a standardized distance from the source.</strong> This is deliberate — receptor-based exposure is the variable health research uses — but it means our absolute SPL values cannot be directly compared to source-emission certifications like ICAO Annex 16 Chapter 14 noise levels, which are measured at fixed distances under controlled conditions.</div>
+          </div>
+          <div class="limitation">
+            <div class="limitation-num">5</div>
+            <div class="limitation-body"><strong>Wind affects readings.</strong> Even with the fur windshield, sustained wind above ~5 m/s degrades accuracy. The app logs weather conditions alongside each measurement so wind-contaminated readings can be filtered in downstream analysis.</div>
+          </div>
+          <div class="limitation">
+            <div class="limitation-num">6</div>
+            <div class="limitation-body"><strong>The calibration offset is empirically derived, not traceable to a national standards laboratory.</strong> A Class 1 reference (Brüel & Kjær 2250, NTi XL2) calibrated at a national metrology institute would be the next step up. Our TA657A reference is Class 2.</div>
+          </div>
+        </div>
+
+        <!-- SECTION 9: SUMMARY -->
+        <div class="method-section" id="s9">
+          <div class="method-section-num">Section 9</div>
+          <h2>Summary and data availability</h2>
+          <p class="prose">
+            All raw observation data collected by TrueNoise is freely available for download on the
+            <a href="data.html">data page</a>. This includes every column — including aircraft
+            identifiers, operator names, and full psychoacoustic profiles — so that researchers and
+            advocates can conduct their own independent analysis. We ask only for attribution.
+          </p>
+          <p class="prose">
+            As the measurement program expands to additional observers and locations, updated datasets
+            will be published on a rolling basis. Methodology updates will be documented here with
+            version notes.
+          </p>
+        </div>
+
+        <!-- CLOSING -->
+        <div class="closing-box">
+          <p>We use the right algorithms (IEC 61672 A-weighting, ISO 532 loudness, DIN 45692
+          sharpness), running on hardware that is more than capable of executing them in real time,
+          with a microphone whose response covers the relevant band, calibrated per-device against
+          a Class 2 reference meter, with the calibration validated empirically on a real aircraft
+          within Class 2 tolerance.</p>
+          <p><em>This is not a substitute for a Brüel & Kjær 2250. It is a measurement system
+          whose accuracy is documented, whose methodology is transparent, and whose data is honest
+          about its limitations. That is the standard we hold ourselves to. We invite anyone to
+          hold us to it.</em></p>
+        </div>
+
+        <!-- REFERENCES -->
+        <div class="method-section" style="margin-top:48px;" id="refs">
+          <div class="method-section-num">References</div>
+          <h2>Standards and citations</h2>
+          <ul class="ref-list">
+            <li>IEC 61672:2013 — Electroacoustics: Sound level meters</li>
+            <li>ISO 532-1:2017 — Acoustics: Methods for calculating loudness — Part 1: Zwicker method</li>
+            <li>DIN 45692:2009 — Measurement technique for the simulation of the auditory sensation of sharpness</li>
+            <li>ISO 1996-1:2016 — Acoustics: Description, measurement and assessment of environmental noise</li>
+            <li>ANSI S1.11 / IEC 61260 — Electroacoustics: Octave-band and fractional-octave-band filters</li>
+            <li>Zwicker E, Fastl H (2007) Psychoacoustics: Facts and Models, 3rd ed. Springer.</li>
+            <li>WHO Environmental Noise Guidelines for the European Region (2018)</li>
+            <li>Jarup et al. (2008) HYENA Study — Environmental Health Perspectives 116(3):329–333</li>
+            <li>Stansfeld et al. (2005) RANCH Study — The Lancet 365(9475):1942–1949</li>
+            <li>ANASE Study (2007) — Attitudes to Noise from Aviation Sources in England</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- RIGHT SECTION NAV -->
+      <nav class="section-nav">
+        <div class="section-nav-label">On this page</div>
+        <a href="#s1">1. Hardware</a>
+        <a href="#s2">2. Audio capture</a>
+        <a href="#s3">3. A-weighting</a>
+        <a href="#s4">4. FFT analysis</a>
+        <a href="#s5">5. Psychoacoustics</a>
+        <a href="#s6">6. Calibration</a>
+        <a href="#s7">7. Validation</a>
+        <a href="#s8">8. Limitations</a>
+        <a href="#s9">9. Data availability</a>
+        <a href="#refs">References</a>
+      </nav>
+    </div>
+  </main>
+</div>
+
+<script>
+  function openMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+  function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+  function closeMenuOutside(e) { if (e.target === document.getElementById('mobileMenu')) closeMenu(); }
+</script>
+</body>
+</html>
