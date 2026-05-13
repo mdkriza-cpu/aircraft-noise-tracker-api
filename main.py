@@ -325,17 +325,20 @@ def dashboard_summary(db = Depends(get_db)):
     recent = [dict(r) for r in cursor.fetchall()]
 
     cursor.execute("""
-        SELECT type_code, type_name, operator,
-               COUNT(DISTINCT callsign) as events,
-               MAX(dba_level) as peak_dba,
-               AVG(loudness_sone) as avg_loudness,
-               AVG(sharpness_acum) as avg_sharpness,
-               AVG(annoyance) as avg_annoyance
-        FROM observations
-        WHERE type_code IS NOT NULL AND type_code != ''
-        GROUP BY type_code, type_name, operator
-        ORDER BY peak_dba DESC
-        LIMIT 10
+      SELECT type_name,
+       flight_phase,
+       COUNT(DISTINCT session_id) as events,
+       MAX(dba_level) as peak_dba,
+       AVG(loudness_sone) as avg_loudness,
+       AVG(sharpness_acum) as avg_sharpness,
+       AVG(annoyance) as avg_annoyance,
+       AVG(altitude_ft) as avg_altitude_ft
+FROM observations
+WHERE type_name IS NOT NULL AND type_name != ''
+AND flight_phase IS NOT NULL AND flight_phase != ''
+GROUP BY type_name, flight_phase
+ORDER BY peak_dba DESC
+LIMIT 20
     """)
     aircraft_breakdown = [dict(r) for r in cursor.fetchall()]
 
