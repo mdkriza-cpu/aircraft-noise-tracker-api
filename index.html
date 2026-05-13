@@ -614,7 +614,7 @@
       </div>
       <div class="status-pill">
         <div class="status-dot"></div>
-        <span id="session-count">—</span> session<span id="session-plural"></span>
+        BWI data
       </div>
     </div>
 
@@ -714,7 +714,7 @@
 
       <!-- SECONDARY METRICS -->
       <div class="section">
-        <div class="section-label">Session indicators</div>
+        <div class="section-label">Noise events</div>
         <div class="cards-grid">
           <div class="card">
             <div class="card-label">Avg event density</div>
@@ -732,9 +732,9 @@
             <div class="card-desc">Aircraft exceeding 65 dBA peak</div>
           </div>
           <div class="card">
-            <div class="card-label">Sessions monitored</div>
-            <div class="card-value" id="c-sessions">—</div>
-            <div class="card-desc">Independent community sessions</div>
+            <div class="card-label">Total noise events</div>
+            <div class="card-value" id="c-total-obs">—</div>
+            <div class="card-desc">Aircraft observations recorded so far</div>
           </div>
         </div>
       </div>
@@ -853,12 +853,8 @@ async function loadDashboard() {
     document.getElementById('loadingBar').style.display = 'none';
 
     const t = data.totals;
-    const sessions = t.total_sessions ?? 0;
 
-    document.getElementById('topbar-sub').textContent =
-      `${sessions} session${sessions !== 1 ? 's' : ''} · BWI departure corridor`;
-    document.getElementById('session-count').textContent = sessions;
-    document.getElementById('session-plural').textContent = sessions !== 1 ? 's' : '';
+    document.getElementById('topbar-sub').textContent = 'BWI departure corridor · community monitoring';
 
     document.getElementById('m-n70').textContent = t.total_n70 ?? '—';
     document.getElementById('m-recovery').textContent = t.total_recovery_deficit ?? '—';
@@ -880,7 +876,7 @@ async function loadDashboard() {
       t.avg_event_density ? t.avg_event_density.toFixed(1) + '/hr' : '—';
     document.getElementById('c-aircraft').textContent = t.total_aircraft ?? '—';
     document.getElementById('c-n65').textContent = t.total_n65 ?? '—';
-    document.getElementById('c-sessions').textContent = sessions;
+    document.getElementById('c-total-obs').textContent = t.total_observations ?? '—';
 
     // Recovery dots
     if (data.recent_sessions && data.recent_sessions.length > 0) {
@@ -954,8 +950,7 @@ function loadFallback() {
   document.getElementById('c-density').textContent = '6.0/hr';
   document.getElementById('c-aircraft').textContent = '29';
   document.getElementById('c-n65').textContent = '24';
-  document.getElementById('c-sessions').textContent = '1';
-  document.getElementById('session-count').textContent = '1';
+  document.getElementById('c-total-obs').textContent = '147';
 
   let dots = '';
   for (let i = 0; i < 30; i++) {
