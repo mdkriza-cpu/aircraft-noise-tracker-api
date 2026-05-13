@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Data — TrueNoise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:       #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark:  #0F6E56;
+    --gray-50:    #F8F7F4;
+    --gray-100:   #F1EFE8;
+    --gray-200:   #D3D1C7;
+    --text:       #1a1a18;
+    --text-muted: #5F5E5A;
+    --text-dim:   #888780;
+    --border:     rgba(0,0,0,0.09);
+    --border-mid: rgba(0,0,0,0.14);
+    --amber:      #BA7517;
+    --amber-light:#FAEEDA;
+  }
+
+  body { font-family: 'Inter', sans-serif; background: #fff; color: var(--text); line-height: 1.6; min-height: 100vh; }
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .app { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; min-width: 220px; border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #fff; }
+  .logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-wave svg { width: 30px; height: 22px; }
+  .logo-name { font-size: 18px; font-weight: 600; letter-spacing: -0.4px; color: var(--text); }
+  .logo-name span { color: var(--teal); }
+  .logo-tagline { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-group { margin-bottom: 20px; }
+  .nav-group-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; transition: background 0.15s, color 0.15s; }
+  .nav-item:hover { background: var(--gray-100); color: var(--text); text-decoration: none; }
+  .nav-item.active { background: var(--teal-light); color: var(--teal-dark); font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .sidebar-footer a { color: var(--text-dim); }
+  .sidebar-footer a:hover { color: var(--teal); }
+
+  /* MAIN */
+  .main { flex: 1; min-width: 0; }
+  .topbar { padding: 14px 40px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #fff; position: sticky; top: 0; z-index: 10; }
+  .topbar-title { font-size: 14px; font-weight: 500; }
+  .topbar-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
+  /* CONTENT */
+  .content { padding: 48px 40px; max-width: 780px; }
+  .page-eyebrow { font-size: 11px; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 2.2rem; font-weight: 400; line-height: 1.2; color: var(--text); margin-bottom: 16px; }
+  .page-intro { font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 36px; max-width: 640px; }
+
+  .prose { font-size: 14px; color: var(--text-muted); line-height: 1.8; margin-bottom: 16px; }
+  .prose strong { color: var(--text); font-weight: 500; }
+
+  /* NOTICE BOX */
+  .notice {
+    background: var(--amber-light);
+    border: 1px solid var(--amber);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 36px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .notice strong { font-weight: 500; }
+
+  /* DOWNLOAD CARD */
+  .download-card {
+    border: 1px solid var(--border-mid);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .download-card-header {
+    padding: 18px 24px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .download-card-title { font-size: 15px; font-weight: 500; color: var(--text); }
+  .download-card-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .download-btn:hover { background: var(--teal-dark); }
+  .download-btn:disabled { background: var(--gray-200); cursor: not-allowed; }
+  .download-card-body { padding: 20px 24px; }
+
+  /* COLUMN TABLE */
+  .col-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .col-table th { text-align: left; font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; padding: 6px 10px; border-bottom: 1px solid var(--border-mid); font-family: 'DM Mono', monospace; }
+  .col-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+  .col-table tr:last-child td { border-bottom: none; }
+  .col-name { font-family: 'DM Mono', monospace; color: var(--teal-dark); white-space: nowrap; }
+  .col-type { font-family: 'DM Mono', monospace; color: var(--text-dim); font-size: 11px; }
+  .col-desc { color: var(--text-muted); }
+
+  /* ATTRIBUTION BOX */
+  .attribution {
+    background: var(--teal-light);
+    border: 1px solid var(--teal);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-top: 36px;
+  }
+  .attribution-label { font-size: 10px; color: var(--teal-dark); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+  .attribution p { font-size: 14px; color: var(--text); line-height: 1.7; }
+  .attribution code { font-family: 'DM Mono', monospace; font-size: 12px; background: rgba(255,255,255,0.6); padding: 2px 6px; border-radius: 3px; }
+
+  .divider { height: 1px; background: var(--border); margin: 36px 0; }
+
+  /* STATS ROW */
+  .stats-row { display: flex; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
+  .stat { background: var(--gray-50); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; min-width: 140px; }
+  .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+  .stat-value { font-size: 1.4rem; font-weight: 500; color: var(--text); }
+
+  /* MOBILE NAV */
+  .mobile-nav { display: none; position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+  .mobile-logo { font-size: 16px; font-weight: 600; color: var(--text); }
+  .mobile-logo span { color: var(--teal); }
+  .hamburger { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 16px; color: var(--text-muted); }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 100; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-panel { background: #fff; width: 260px; height: 100%; padding: 20px 16px; overflow-y: auto; }
+  .mobile-menu-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); margin-bottom: 16px; display: block; }
+
+  @media (max-width: 768px) {
+    .app { flex-direction: column; }
+    .sidebar { display: none; }
+    .mobile-nav { display: flex; }
+    .topbar { padding: 12px 16px; }
+    .content { padding: 28px 16px; }
+    .download-card-header { flex-direction: column; align-items: flex-start; }
+    .page-title { font-size: 1.7rem; }
+    .stats-row { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-nav">
+  <div class="mobile-logo">True<span>Noise</span></div>
+  <button class="hamburger" onclick="openMenu()" aria-label="Open navigation">☰</button>
+</div>
+
+<div class="mobile-menu" id="mobileMenu" onclick="closeMenuOutside(event)">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+    <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:20px;">True<span style="color:var(--teal)">Noise</span></div>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Data</div>
+    <a href="index.html" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Health dashboard</a>
+    <a href="index.html#aircraft" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Aircraft analysis</a>
+    <a href="index.html#time" class="nav-item" onclick="closeMenu()" style="display:flex; margin-bottom:2px;">Time patterns</a>
+    <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin:16px 0 8px;">Research</div>
+    <a href="methodology.html" class="nav-item" style="display:flex; margin-bottom:2px;">Methodology</a>
+    <a href="data.html" class="nav-item active" style="display:flex; margin-bottom:2px;">Download data</a>
+    <a href="about.html" class="nav-item" style="display:flex;">About</a>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-wave">
+          <svg viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 11 Q5.5 4 9 11 Q12.5 18 16 11 Q19.5 4 23 11 Q26.5 18 30 11" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div><div class="logo-name">True<span>Noise</span></div></div>
+      </div>
+      <div class="logo-tagline">Environmental noise research</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <a href="index.html" class="nav-item"><span class="nav-icon">📊</span> Health dashboard</a>
+        <a href="index.html#aircraft" class="nav-item"><span class="nav-icon">✈</span> Aircraft analysis</a>
+        <a href="index.html#time" class="nav-item"><span class="nav-icon">🕐</span> Time patterns</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Research</div>
+        <a href="methodology.html" class="nav-item"><span class="nav-icon">🔬</span> Methodology</a>
+        <a href="data.html" class="nav-item active"><span class="nav-icon">⬇</span> Download data</a>
+        <a href="about.html" class="nav-item"><span class="nav-icon">ℹ</span> About</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Independent community monitoring.<br>
+      Not affiliated with any airport,<br>airline, or government agency.<br><br>
+      <a href="methodology.html">Methodology</a> · <a href="about.html">About</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Download data</div>
+        <div class="topbar-sub">Raw observations · openly available</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-eyebrow">Open data</div>
+      <h1 class="page-title">Raw observations, freely available</h1>
+      <p class="page-intro">
+        Every observation collected by TrueNoise is available for download — including aircraft
+        identifiers, operator names, GPS coordinates, and full psychoacoustic profiles. We believe
+        open data makes better science. Use it, build on it, challenge it.
+      </p>
+
+      <!-- NOTICE -->
+      <div class="notice">
+        <strong>Dataset is early-stage.</strong> TrueNoise began systematic data collection in
+        May 2026. The current dataset reflects a small number of monitoring sessions near BWI Airport.
+        It is sufficient to demonstrate the methodology and explore initial patterns, but not yet
+        large enough for robust statistical conclusions. The dataset grows with every monitoring
+        session and will be updated continuously.
+      </div>
+
+      <!-- LIVE STATS -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Total observations</div>
+          <div class="stat-value" id="stat-obs">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Unique aircraft</div>
+          <div class="stat-value" id="stat-aircraft">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Monitoring area</div>
+          <div class="stat-value" style="font-size:1rem; padding-top:4px;">BWI corridor</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Data from</div>
+          <div class="stat-value" style="font-size:1rem; padding-top:4px;">May 2026</div>
+        </div>
+      </div>
+
+      <!-- DOWNLOAD CARD -->
+      <div class="download-card">
+        <div class="download-card-header">
+          <div>
+            <div class="download-card-title">Aircraft noise observations — full dataset</div>
+            <div class="download-card-meta" id="download-meta">Loading dataset size...</div>
+          </div>
+          <button class="download-btn" id="downloadBtn" onclick="downloadCSV()">
+            ⬇ Download CSV
+          </button>
+        </div>
+        <div class="download-card-body">
+          <p class="prose">
+            One row per observation. Includes every measurement the app recorded — both
+            <strong>entry events</strong> (first detection of an aircraft entering the monitoring
+            zone) and <strong>track events</strong> (continuous measurements as the aircraft passes).
+            All psychoacoustic metrics, all aircraft identifiers, all GPS and ADS-B data.
+          </p>
+          <p class="prose">
+            For health impact analysis, focus on <strong>entry</strong> rows — these represent
+            each unique aircraft event. Track rows provide the time-series detail within each event.
+            The <code>Type</code> column distinguishes them.
+          </p>
+        </div>
+      </div>
+
+      <!-- COLUMN DEFINITIONS -->
+      <div style="margin-bottom: 36px;">
+        <div style="font-size:10px; color:var(--teal); letter-spacing:0.12em; text-transform:uppercase; font-family:'DM Mono',monospace; margin-bottom:8px;">Column definitions</div>
+        <div style="font-family:'DM Serif Display',serif; font-size:1.3rem; font-weight:400; color:var(--text); margin-bottom:12px;">What's in the CSV</div>
+        <p class="prose" style="margin-bottom:16px;">
+          Full column definitions and health risk scale descriptions are documented in the
+          <a href="methodology.html">methodology page</a>. A quick reference is below.
+        </p>
+
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="col-name">Timestamp</td><td class="col-type">datetime</td><td class="col-desc">Date and time of observation (local time zone)</td></tr>
+            <tr><td class="col-name">Type</td><td class="col-type">string</td><td class="col-desc">"entry" = aircraft entered zone; "track" = continuous measurement</td></tr>
+            <tr><td class="col-name">dBA Level</td><td class="col-type">float</td><td class="col-desc">A-weighted sound pressure level in decibels (IEC 61672)</td></tr>
+            <tr><td class="col-name">Loudness (sone)</td><td class="col-type">float</td><td class="col-desc">Zwicker perceived loudness (ISO 532). Doubling = doubling perceived loudness.</td></tr>
+            <tr><td class="col-name">Loudness Health Impact</td><td class="col-type">string</td><td class="col-desc">Risk tier label for loudness value</td></tr>
+            <tr><td class="col-name">Loudness Level (phon)</td><td class="col-type">float</td><td class="col-desc">Loudness expressed in phon for cross-spectrum comparison</td></tr>
+            <tr><td class="col-name">Sharpness (acum)</td><td class="col-type">float</td><td class="col-desc">High-frequency spectral content (DIN 45692). Higher = more piercing.</td></tr>
+            <tr><td class="col-name">Annoyance</td><td class="col-type">float</td><td class="col-desc">Psychoacoustic annoyance index (Zwicker & Fastl composite)</td></tr>
+            <tr><td class="col-name">Onset Rate (dB/s)</td><td class="col-type">float</td><td class="col-desc">Rate of noise level increase. High values trigger startle response.</td></tr>
+            <tr><td class="col-name">Callsign</td><td class="col-type">string</td><td class="col-desc">Flight identifier from ADS-B (e.g. SWA2333)</td></tr>
+            <tr><td class="col-name">ICAO24</td><td class="col-type">string</td><td class="col-desc">Unique aircraft transponder hex code</td></tr>
+            <tr><td class="col-name">Type Code</td><td class="col-type">string</td><td class="col-desc">ICAO aircraft type designator (e.g. B38M, A320)</td></tr>
+            <tr><td class="col-name">Type Name</td><td class="col-type">string</td><td class="col-desc">Full aircraft type name (e.g. Boeing 737MAX 8)</td></tr>
+            <tr><td class="col-name">Registration</td><td class="col-type">string</td><td class="col-desc">Aircraft tail number</td></tr>
+            <tr><td class="col-name">Operator</td><td class="col-type">string</td><td class="col-desc">Airline or operator name</td></tr>
+            <tr><td class="col-name">Flight Phase</td><td class="col-type">string</td><td class="col-desc">Estimated phase: Taking Off, On Approach, Climbing, Cruising, etc.</td></tr>
+            <tr><td class="col-name">Ground Distance (mi)</td><td class="col-type">float</td><td class="col-desc">Horizontal distance from observer in miles</td></tr>
+            <tr><td class="col-name">Slant Range (mi)</td><td class="col-type">float</td><td class="col-desc">3D distance from observer in miles (accounts for altitude)</td></tr>
+            <tr><td class="col-name">Altitude (ft)</td><td class="col-type">float</td><td class="col-desc">Barometric altitude in feet</td></tr>
+            <tr><td class="col-name">Bearing</td><td class="col-type">float</td><td class="col-desc">Compass bearing from observer to aircraft in degrees</td></tr>
+            <tr><td class="col-name">Elevation Angle</td><td class="col-type">float</td><td class="col-desc">Look-up angle from observer to aircraft in degrees</td></tr>
+            <tr><td class="col-name">Speed (kts)</td><td class="col-type">float</td><td class="col-desc">Ground speed in knots</td></tr>
+            <tr><td class="col-name">Climb Rate (fpm)</td><td class="col-type">float</td><td class="col-desc">Vertical rate in feet per minute (positive = climbing)</td></tr>
+            <tr><td class="col-name">Observer Lat / Lon</td><td class="col-type">float</td><td class="col-desc">GPS coordinates of the measurement location</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- ATTRIBUTION -->
+      <div class="attribution">
+        <div class="attribution-label">Attribution</div>
+        <p>
+          This data is free to use for any purpose. If you publish findings based on TrueNoise data,
+          please cite the source:<br><br>
+          <code>TrueNoise Community Noise Observatory. Aircraft noise observations, BWI departure corridor.
+          truenoise.org. Accessed [date].</code><br><br>
+          Questions about the data or methodology? <a href="about.html#contact">Get in touch.</a>
+        </p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const API_BASE = 'https://aircraft-noise-tracker-api.onrender.com';
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/dashboard-summary`);
+    const data = await res.json();
+    const t = data.totals;
+    document.getElementById('stat-obs').textContent = t.total_observations ?? '—';
+    document.getElementById('stat-aircraft').textContent = t.total_aircraft ?? '—';
+    document.getElementById('download-meta').textContent =
+      `${t.total_observations ?? '—'} rows · CSV · All columns included`;
+  } catch(e) {
+    document.getElementById('download-meta').textContent = 'CSV · All columns included';
+  }
+}
+
+async function downloadCSV() {
+  const btn = document.getElementById('downloadBtn');
+  btn.disabled = true;
+  btn.textContent = 'Preparing…';
+
+  try {
+    // Fetch all observations from the API
+    const res = await fetch(`${API_BASE}/api/v1/sessions`);
+    const sessions = await res.json();
+
+    if (!sessions || sessions.length === 0) {
+      alert('No data available to download yet.');
+      btn.disabled = false;
+      btn.innerHTML = '⬇ Download CSV';
+      return;
+    }
+
+    // Fetch observations for all sessions
+    const allRows = [];
+    for (const session of sessions) {
+      const obsRes = await fetch(`${API_BASE}/api/v1/sessions/${session.session_id}/observations`);
+      const obs = await obsRes.json();
+      allRows.push(...obs);
+    }
+
+    if (allRows.length === 0) {
+      alert('No observations available to download yet.');
+      btn.disabled = false;
+      btn.innerHTML = '⬇ Download CSV';
+      return;
+    }
+
+    // Build CSV
+    const columns = [
+      'timestamp', 'type', 'dba_level',
+      'loudness_sone', 'loudness_health_impact', 'loudness_level_phon', 'loudness_context',
+      'sharpness_acum', 'sharpness_health_impact',
+      'annoyance', 'annoyance_health_impact',
+      'onset_rate', 'onset_health_impact',
+      'callsign', 'icao24', 'type_code', 'type_name', 'registration', 'operator',
+      'flight_phase', 'ground_distance_mi', 'slant_range_mi', 'altitude_ft',
+      'bearing', 'bearing_compass', 'elevation_angle',
+      'speed_kts', 'climb_rate_fpm', 'approaching',
+      'observer_lat', 'observer_lon'
+    ];
+
+    const headers = [
+      'Timestamp', 'Type', 'dBA Level',
+      'Loudness (sone)', 'Loudness Health Impact', 'Loudness Level (phon)', 'Loudness Context',
+      'Sharpness (acum)', 'Sharpness Health Impact',
+      'Annoyance', 'Annoyance Health Impact',
+      'Onset Rate (dB/s)', 'Onset Health Impact',
+      'Callsign', 'ICAO24', 'Type Code', 'Type Name', 'Registration', 'Operator',
+      'Flight Phase', 'Ground Distance (mi)', 'Slant Range (mi)', 'Altitude (ft)',
+      'Bearing', 'Bearing Compass', 'Elevation Angle',
+      'Speed (kts)', 'Climb Rate (fpm)', 'Approaching',
+      'Observer Lat', 'Observer Lon'
+    ];
+
+    function escapeCSV(val) {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    const csvRows = [headers.join(',')];
+    for (const row of allRows) {
+      csvRows.push(columns.map(col => escapeCSV(row[col])).join(','));
+    }
+    const csvContent = csvRows.join('\n');
+
+    // Trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const today = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `truenoise-observations-${today}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    btn.disabled = false;
+    btn.innerHTML = '⬇ Download CSV';
+  } catch(e) {
+    alert('Download failed. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = '⬇ Download CSV';
+  }
+}
+
+function openMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+function closeMenuOutside(e) { if (e.target === document.getElementById('mobileMenu')) closeMenu(); }
+
+loadStats();
+</script>
+</body>
+</html>
