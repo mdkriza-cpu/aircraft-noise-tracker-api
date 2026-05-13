@@ -217,7 +217,7 @@ async def upload_session(
 
     aircraft_peaks: dict = {}
     for row in rows:
-        cs = row.get("Callsign", "").strip()
+        cs = (row.get("Callsign") or "").strip()
         dba = _float(row.get("dBA Level"))
         if cs and dba is not None:
             aircraft_peaks[cs] = max(aircraft_peaks.get(cs, 0), dba)
