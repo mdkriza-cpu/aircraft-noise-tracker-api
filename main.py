@@ -14,6 +14,10 @@ import secrets
 import psycopg
 from psycopg.rows import dict_row
 from datetime import datetime, timezone
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
 
 # ---------------------------------------------------------------------------
 # API key authentication — upload endpoint only
@@ -27,7 +31,14 @@ def verify_api_key(x_api_key: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return x_api_key
 
+# ---------------------------------------------------------------------------
+# Rate limiting — 10 uploads per IP per hour
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="TrueNoise API", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -126,7 +137,9 @@ def health():
 
 
 @app.post("/api/v1/upload-session")
+@limiter.limit("10/hour")
 async def upload_session(
+    request: Request,
     file: UploadFile = File(...),
     db = Depends(get_db),
     api_key: str = Depends(verify_api_key)
