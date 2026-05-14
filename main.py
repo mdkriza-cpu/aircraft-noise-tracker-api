@@ -331,11 +331,11 @@ def dashboard_summary(db = Depends(get_db)):
     totals = dict(cursor.fetchone() or {})
 
     cursor.execute("""
-        SELECT session_start, n70, recovery_deficit, peak_dba, event_density
+        SELECT session_start, n70, recovery_deficit, peak_dba, event_density, uploaded_at
         FROM sessions
-        ORDER BY session_start DESC
+        ORDER BY uploaded_at DESC
         LIMIT 30
-    """)
+    """))
     recent = [dict(r) for r in cursor.fetchall()]
 
     cursor.execute("""
