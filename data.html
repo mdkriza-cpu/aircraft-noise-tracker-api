@@ -338,6 +338,8 @@
             <tr><td class="col-name">Speed (kts)</td><td class="col-type">float</td><td class="col-desc">Ground speed in knots</td></tr>
             <tr><td class="col-name">Climb Rate (fpm)</td><td class="col-type">float</td><td class="col-desc">Vertical rate in feet per minute (positive = climbing)</td></tr>
             <tr><td class="col-name">Observer Lat / Lon</td><td class="col-type">float</td><td class="col-desc">GPS coordinates of the measurement location</td></tr>
+            <tr><td class="col-name">Windshield Config</td><td class="col-type">string</td><td class="col-desc">Windshield configuration used during the session: None, Foam, or Fur. Same value for every row in the session. Blank for sessions recorded before this field was added (all outdoor sessions used Fur).</td></tr>
+            <tr><td class="col-name">Windshield Correction (dBA)</td><td class="col-type">float</td><td class="col-desc">A-weighted insertion loss for the windshield configuration: 0.0 (None), 0.7 (Foam), 1.8 (Fur). Actual noise levels at the receptor are this many dB higher than the reported dBA values. Apply this correction for absolute SPL analysis.</td></tr>
           </tbody>
         </table>
       </div>
