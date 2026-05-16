@@ -313,38 +313,38 @@
       <div class="map-panel">
         <div class="mp-section">
           <div class="mp-label">Turn altitude — toggle tracks</div>
-          <div class="alt-row" onclick="toggleAlt(800)">
-            <input type="checkbox" id="cb800" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb800" checked onchange="toggleAlt(800)">
             <div class="alt-swatch" style="background:#E63232;"></div>
             <span class="alt-label">800 ft</span>
             <span class="alt-spl">72 dBA</span>
           </div>
-          <div class="alt-row" onclick="toggleAlt(900)">
-            <input type="checkbox" id="cb900" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb900" checked onchange="toggleAlt(900)">
             <div class="alt-swatch" style="background:#E65A1E;"></div>
             <span class="alt-label">900 ft</span>
             <span class="alt-spl">72 dBA</span>
           </div>
-          <div class="alt-row" onclick="toggleAlt(1000)">
-            <input type="checkbox" id="cb1000" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb1000" checked onchange="toggleAlt(1000)">
             <div class="alt-swatch" style="background:#D48C1E;"></div>
             <span class="alt-label">1,000 ft (≈ WARYN)</span>
             <span class="alt-spl">73 dBA</span>
           </div>
-          <div class="alt-row" onclick="toggleAlt(1100)">
-            <input type="checkbox" id="cb1100" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb1100" checked onchange="toggleAlt(1100)">
             <div class="alt-swatch" style="background:#C0B41E;"></div>
             <span class="alt-label">1,100 ft</span>
             <span class="alt-spl">74 dBA</span>
           </div>
-          <div class="alt-row" onclick="toggleAlt(1200)">
-            <input type="checkbox" id="cb1200" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb1200" checked onchange="toggleAlt(1200)">
             <div class="alt-swatch" style="background:#8CBE1E;"></div>
             <span class="alt-label">1,200 ft</span>
             <span class="alt-spl">74 dBA</span>
           </div>
-          <div class="alt-row" onclick="toggleAlt(3000)">
-            <input type="checkbox" id="cb3000" checked>
+          <div class="alt-row">
+            <input type="checkbox" id="cb3000" checked onchange="toggleAlt(3000)">
             <div class="alt-swatch" style="background:#19B973;"></div>
             <span class="alt-label">3,000 ft (BRGHT)</span>
             <span class="alt-spl">63 dBA</span>
@@ -618,8 +618,12 @@ addLabel([39.100,-76.660],'Severn Run Nature Area','#2d6e2d');
 // ── TOGGLE ────────────────────────────────────────────────────────────────────
 function toggleAlt(alt) {
   const cb=document.getElementById('cb'+alt);
-  cb.checked=!cb.checked;
-  cb.checked?layerGroups[alt].addTo(map):map.removeLayer(layerGroups[alt]);
+  // cb.checked already reflects new state when called from onchange
+  if(cb.checked){
+    layerGroups[alt].addTo(map);
+  } else {
+    map.removeLayer(layerGroups[alt]);
+  }
 }
 
 // ── MOBILE NAV ────────────────────────────────────────────────────────────────
