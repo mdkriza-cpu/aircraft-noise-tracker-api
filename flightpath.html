@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Path Analysis — TrueNoise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #0F6E56;
+    --red: #E24B4A; --red-light: #FCEBEB;
+    --amber: #BA7517; --amber-light: #FAEEDA;
+    --blue: #185FA5; --blue-light: #E6F1FB;
+    --gray-50: #F8F7F4; --gray-100: #F1EFE8;
+    --text: #1a1a18; --text-muted: #5F5E5A; --text-dim: #888780;
+    --border: rgba(0,0,0,0.09); --border-mid: rgba(0,0,0,0.14);
+  }
+  body { font-family: 'Inter', sans-serif; background: #fff; color: var(--text); line-height: 1.6; }
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .app { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; min-width: 220px; border-right: 1px solid var(--border);
+             display: flex; flex-direction: column; position: sticky; top: 0;
+             height: 100vh; overflow-y: auto; background: #fff; }
+  .logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-name { font-size: 18px; font-weight: 600; letter-spacing: -0.4px; color: var(--text); }
+  .logo-name span { color: var(--teal); }
+  .logo-tagline { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em;
+                  text-transform: uppercase; margin-top: 2px; }
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-group { margin-bottom: 20px; }
+  .nav-group-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
+                     text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px;
+              border-radius: 6px; font-size: 13px; color: var(--text-muted);
+              text-decoration: none; transition: background 0.15s, color 0.15s; }
+  .nav-item:hover { background: var(--gray-100); color: var(--text); text-decoration: none; }
+  .nav-item.active { background: var(--teal-light); color: var(--teal-dark); font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border);
+                    font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .sidebar-footer a { color: var(--text-dim); }
+  .sidebar-footer a:hover { color: var(--teal); }
+
+  /* MAIN */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { padding: 14px 40px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: #fff; position: sticky; top: 0; z-index: 10; }
+  .topbar-title { font-size: 14px; font-weight: 500; }
+  .topbar-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+  .badge { font-size: 10px; background: var(--amber-light); color: var(--amber);
+           border: 1px solid var(--amber); padding: 3px 8px; border-radius: 4px;
+           letter-spacing: 0.06em; font-family: 'DM Mono', monospace; }
+
+  /* INTRO */
+  .intro { padding: 36px 40px 0; max-width: 860px; }
+  .page-eyebrow { font-size: 11px; color: var(--teal); letter-spacing: 0.12em;
+                  text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 1.9rem;
+                font-weight: 400; color: var(--text); margin-bottom: 14px; line-height: 1.2; }
+  .prose { font-size: 14px; color: var(--text-muted); line-height: 1.85; margin-bottom: 14px; }
+  .prose strong { color: var(--text); font-weight: 500; }
+
+  /* ELEMENTS GRID */
+  .elements { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+              gap: 10px; margin: 20px 0 28px; }
+  .element { background: var(--gray-50); border: 1px solid var(--border);
+             border-radius: 8px; padding: 12px 14px; }
+  .element-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .el-swatch { width: 24px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .el-swatch.dashed { background: repeating-linear-gradient(90deg,currentColor 0,currentColor 5px,transparent 5px,transparent 9px); }
+  .element-label { font-size: 12px; font-weight: 500; color: var(--text); }
+  .element-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  /* INSTRUCTIONS */
+  .instructions { background: var(--teal-light); border: 1px solid var(--teal);
+                  border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; }
+  .instructions-label { font-size: 10px; color: var(--teal-dark); letter-spacing: 0.1em;
+                        text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 6px; }
+  .instructions ul { list-style: none; }
+  .instructions li { font-size: 13px; color: var(--text); line-height: 1.7;
+                     padding-left: 16px; position: relative; }
+  .instructions li::before { content: '→'; position: absolute; left: 0; color: var(--teal); }
+
+  /* DISCLAIMER */
+  .disclaimer { background: var(--amber-light); border-left: 3px solid var(--amber);
+                border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 24px; }
+  .disclaimer p { font-size: 12px; color: var(--text); line-height: 1.7; }
+  .disclaimer strong { font-weight: 500; }
+
+  /* MAP LAYOUT */
+  .map-layout { display: flex; flex: 1; min-height: 600px; border-top: 1px solid var(--border); }
+  #map { flex: 1; min-height: 600px; }
+
+  /* MAP CONTROLS */
+  .map-panel { width: 260px; min-width: 260px; border-left: 1px solid var(--border);
+               background: #fff; display: flex; flex-direction: column;
+               overflow-y: auto; }
+  .mp-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .mp-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
+              text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+  .alt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+             cursor: pointer; padding: 3px 0; }
+  .alt-row input { cursor: pointer; accent-color: var(--teal); }
+  .alt-swatch { width: 24px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .alt-label { flex: 1; font-size: 12px; color: var(--text); }
+  .alt-spl { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+  .disp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
+              font-size: 11px; color: var(--text-muted); }
+  .disp-line { width: 24px; height: 2px; background: var(--text-dim);
+               border-radius: 1px; flex-shrink: 0; }
+  .disp-dash { background: repeating-linear-gradient(90deg,var(--text-dim) 0,var(--text-dim) 5px,transparent 5px,transparent 9px); }
+
+  .mp-note { font-size: 11px; color: var(--text-dim); line-height: 1.6; padding: 12px 16px; }
+
+  /* MOBILE NAV */
+  .mobile-nav { display: none; position: sticky; top: 0; z-index: 20; background: #fff;
+                border-bottom: 1px solid var(--border); padding: 12px 16px;
+                align-items: center; justify-content: space-between; }
+  .mobile-logo { font-size: 16px; font-weight: 600; color: var(--text); }
+  .mobile-logo span { color: var(--teal); }
+  .hamburger { background: none; border: 1px solid var(--border); border-radius: 6px;
+               padding: 6px 8px; cursor: pointer; font-size: 16px; color: var(--text-muted); }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                 background: rgba(0,0,0,0.4); z-index: 100; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-panel { background: #fff; width: 260px; height: 100%;
+                       padding: 20px 16px; overflow-y: auto; }
+  .mobile-menu-close { background: none; border: none; font-size: 20px; cursor: pointer;
+                       color: var(--text-muted); margin-bottom: 16px; display: block; }
+
+  /* POPUP STYLES */
+  .leaflet-popup-content-wrapper { font-family: 'Inter', sans-serif; font-size: 12px;
+    border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .leaflet-popup-content { margin: 12px 14px; line-height: 1.65; }
+  .pop-title { font-weight: 600; color: var(--text); margin-bottom: 5px; font-size: 13px; }
+  .pop-good { color: var(--teal-dark); font-weight: 500; }
+  .pop-warn { color: var(--amber); font-weight: 500; }
+  .pop-bad  { color: var(--red); font-weight: 500; }
+  .pop-note { font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.5; }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .mobile-nav { display: flex; }
+    .topbar { padding: 12px 16px; }
+    .intro { padding: 24px 16px 0; }
+    .map-layout { flex-direction: column; }
+    .map-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    #map { min-height: 400px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-nav">
+  <a href="index.html" style="text-decoration:none;">
+    <div class="mobile-logo">True<span>Noise</span></div>
+  </a>
+  <button class="hamburger" onclick="openMenu()">☰</button>
+</div>
+<div class="mobile-menu" id="mobileMenu" onclick="closeMenuOutside(event)">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:20px;">
+      True<span style="color:var(--teal)">Noise</span></div>
+    <a href="dashboard.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">Health dashboard</a>
+    <a href="flightpath.html" class="nav-item active" style="display:flex;margin-bottom:2px;">Flight path analysis</a>
+    <a href="measurement-gap.html" class="nav-item" style="display:flex;margin-bottom:2px;">The measurement gap</a>
+    <a href="methodology.html" class="nav-item" style="display:flex;margin-bottom:2px;">Methodology</a>
+    <a href="data.html" class="nav-item" style="display:flex;margin-bottom:2px;">Download data</a>
+    <a href="about.html" class="nav-item" style="display:flex;">About &amp; Contact</a>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <a href="index.html" style="text-decoration:none;display:block;">
+        <div class="logo-mark">
+          <svg viewBox="0 0 42 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:38px;height:26px;">
+            <path d="M2 14 Q7 3 12 14 Q17 25 22 14 Q27 3 32 14 Q37 25 42 14"
+                  stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <div><div class="logo-name">True<span>Noise</span></div></div>
+        </div>
+        <div class="logo-tagline">Environmental noise research</div>
+      </a>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span> Health dashboard</a>
+        <a href="dashboard.html#aircraft" class="nav-item"><span class="nav-icon">✈</span> Aircraft analysis</a>
+        <a href="dashboard.html#time" class="nav-item"><span class="nav-icon">🕐</span> Time patterns</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Research</div>
+        <a href="flightpath.html" class="nav-item active"><span class="nav-icon">🗺</span> Flight path analysis</a>
+        <a href="measurement-gap.html" class="nav-item"><span class="nav-icon">📐</span> The measurement gap</a>
+        <a href="methodology.html" class="nav-item"><span class="nav-icon">🔬</span> Methodology</a>
+        <a href="data.html" class="nav-item"><span class="nav-icon">⬇</span> Download data</a>
+        <a href="about.html" class="nav-item"><span class="nav-icon">ℹ</span> About &amp; Contact</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Independent community monitoring.<br>
+      Not affiliated with any airport,<br>airline, or government agency.<br><br>
+      <a href="methodology.html">Methodology</a> · <a href="about.html">About</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Flight path analysis</div>
+        <div class="topbar-sub">BWI Runway 15R westbound departures · procedure comparison</div>
+      </div>
+      <span class="badge">THEORETICAL MODEL</span>
+    </div>
+
+    <div class="intro">
+      <div class="page-eyebrow">Flight path research</div>
+      <h1 class="page-title">Six departure procedures, one community, one question: which routing causes least harm?</h1>
+
+      <p class="prose">
+        This page presents a theoretical noise model comparing six proposed altitude-based
+        departure restrictions for westbound flights from BWI Runway 15R — the procedure
+        that concentrates aircraft over Severn, Maryland residential communities. The model
+        draws on <strong>calibrated TrueNoise field measurements</strong>, <strong>94 AirNoise
+        complaint records</strong>, and <strong>three ADS-B approach tracks</strong> to
+        ground the geometry in empirical data.
+      </p>
+      <p class="prose">
+        The Maryland Aviation Authority has submitted a proposal to the FAA to remove the
+        WARYN waypoint and replace it with an altitude-based turn restriction. The FAA is
+        conducting a feasibility study. This analysis models the MAA's proposed range
+        (800–1,200 ft) alongside a community-proposed alternative: a new waypoint
+        designated <strong>BRGHT</strong> at the Brightview Drive/Route 97 overpass,
+        with a turn altitude of 3,000–5,000 ft.
+      </p>
+
+      <div class="elements">
+        <div class="element">
+          <div class="element-head">
+            <div class="el-swatch" style="background:#E63232;"></div>
+            <div class="el-swatch" style="background:#E65A1E;"></div>
+            <div class="el-swatch" style="background:#D48C1E;"></div>
+            <div class="el-swatch" style="background:#C0B41E;"></div>
+            <div class="el-swatch" style="background:#8CBE1E;"></div>
+            <span class="element-label">800–1,200 ft turns</span>
+          </div>
+          <div class="element-desc">MAA proposed altitude range. All five turn within 1.26 nm of the runway — near-identical geometry to the current WARYN waypoint. Toggle each on/off to compare.</div>
+        </div>
+        <div class="element">
+          <div class="element-head">
+            <div class="el-swatch" style="background:#19B973;"></div>
+            <span class="element-label">3,000 ft BRGHT</span>
+          </div>
+          <div class="element-desc">Community-proposed alternative. A new geographic waypoint at Brightview Dr/Route 97, 3.74 nm from the runway. All aircraft converge on this point — no performance-based dispersion.</div>
+        </div>
+        <div class="element">
+          <div class="element-head">
+            <div class="el-swatch" style="background:#888;"></div>
+            <span class="element-label">Solid vs dashed lines</span>
+          </div>
+          <div class="element-desc">Each altitude shows 4 tracks — solid lines are light/fast-climbing aircraft, dashed are heavy/slow. The spread between them is the geographic dispersion band without a waypoint.</div>
+        </div>
+        <div class="element">
+          <div class="element-head">
+            <div class="el-swatch" style="background:#FFD740;"></div>
+            <div class="el-swatch" style="background:#19B973; margin-left:4px;"></div>
+            <div class="el-swatch" style="background:#E63232; margin-left:4px;"></div>
+            <span class="element-label">Markers</span>
+          </div>
+          <div class="element-desc">Yellow = Ashbrook observer (TrueNoise measurement location). Green = BRGHT proposed waypoint. Red = WARYN current waypoint. Click any marker for details.</div>
+        </div>
+      </div>
+
+      <div class="instructions">
+        <div class="instructions-label">How to use this map</div>
+        <ul>
+          <li>Toggle altitude tracks on and off using the checkboxes in the map panel</li>
+          <li>Click any flight track for altitude, estimated noise level, and community impact</li>
+          <li>Click any marker (WARYN, BRGHT, Ashbrook, etc.) for detailed information</li>
+          <li>Zoom and pan freely — the map uses OpenStreetMap for accurate geography</li>
+          <li>Solid lines show light/fast aircraft; dashed lines show heavy/slow aircraft at the same altitude</li>
+        </ul>
+      </div>
+
+      <div class="disclaimer">
+        <p><strong>Important:</strong> This is a theoretical model for research and public education.
+        Noise estimates use inverse square law propagation calibrated to a single TrueNoise
+        field measurement (A320, 72.4 dBA, 9 May 2026). Fuel estimates use published aircraft
+        performance data. This is not a certified FAA AEDT noise analysis and should not be
+        cited as one. Its purpose is to demonstrate that the BRGHT alternative warrants
+        formal independent modeling by the FAA as part of its feasibility study.
+        See <a href="methodology.html">full methodology</a> for calibration details.</p>
+      </div>
+    </div>
+
+    <div class="map-layout">
+      <div id="map"></div>
+
+      <div class="map-panel">
+        <div class="mp-section">
+          <div class="mp-label">Turn altitude — toggle tracks</div>
+          <div class="alt-row" onclick="toggleAlt(800)">
+            <input type="checkbox" id="cb800" checked>
+            <div class="alt-swatch" style="background:#E63232;"></div>
+            <span class="alt-label">800 ft</span>
+            <span class="alt-spl">72 dBA</span>
+          </div>
+          <div class="alt-row" onclick="toggleAlt(900)">
+            <input type="checkbox" id="cb900" checked>
+            <div class="alt-swatch" style="background:#E65A1E;"></div>
+            <span class="alt-label">900 ft</span>
+            <span class="alt-spl">72 dBA</span>
+          </div>
+          <div class="alt-row" onclick="toggleAlt(1000)">
+            <input type="checkbox" id="cb1000" checked>
+            <div class="alt-swatch" style="background:#D48C1E;"></div>
+            <span class="alt-label">1,000 ft (≈ WARYN)</span>
+            <span class="alt-spl">73 dBA</span>
+          </div>
+          <div class="alt-row" onclick="toggleAlt(1100)">
+            <input type="checkbox" id="cb1100" checked>
+            <div class="alt-swatch" style="background:#C0B41E;"></div>
+            <span class="alt-label">1,100 ft</span>
+            <span class="alt-spl">74 dBA</span>
+          </div>
+          <div class="alt-row" onclick="toggleAlt(1200)">
+            <input type="checkbox" id="cb1200" checked>
+            <div class="alt-swatch" style="background:#8CBE1E;"></div>
+            <span class="alt-label">1,200 ft</span>
+            <span class="alt-spl">74 dBA</span>
+          </div>
+          <div class="alt-row" onclick="toggleAlt(3000)">
+            <input type="checkbox" id="cb3000" checked>
+            <div class="alt-swatch" style="background:#19B973;"></div>
+            <span class="alt-label">3,000 ft (BRGHT)</span>
+            <span class="alt-spl">63 dBA</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:6px;font-family:'DM Mono',monospace;">
+            dBA = estimated peak SPL at Ashbrook
+          </div>
+        </div>
+
+        <div class="mp-section">
+          <div class="mp-label">Dispersion (per altitude)</div>
+          <div class="disp-row"><div class="disp-line"></div>Light/fast climber (solid)</div>
+          <div class="disp-row"><div class="disp-line disp-dash"></div>Heavy/slow climber (dashed)</div>
+          <p style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.6;">
+            4 tracks per altitude show the spread between lightest and heaviest aircraft.
+            Without a geographic waypoint, this band determines which communities are overflown.
+            BRGHT eliminates dispersion — all aircraft converge on the same point.
+          </p>
+        </div>
+
+        <div class="mp-section">
+          <div class="mp-label">Key findings</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.7;">
+            <div style="margin-bottom:8px;">
+              <span style="color:var(--red);font-weight:500;">800–1,200 ft:</span>
+              All turn within 1.26 nm — same geography as current WARYN. No meaningful relief for Severn.
+            </div>
+            <div style="margin-bottom:8px;">
+              <span style="color:var(--teal);font-weight:500;">BRGHT 3,000 ft:</span>
+              Turn at 3.74 nm — arc sweeps over Severn Run Nature Area. Estimated 10 dB improvement at Ashbrook.
+            </div>
+            <div>
+              <span style="color:var(--text);font-weight:500;">Fuel delta:</span>
+              ~4 gallons per flight at 3,000 ft — 0.1% of total fuel load. Commercially immaterial.
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-note">
+          <a href="methodology.html" style="font-size:11px;">Full methodology →</a><br>
+          <a href="data.html" style="font-size:11px;">Download raw data →</a><br>
+          <span style="font-size:10px;color:var(--text-dim);">Map: © OpenStreetMap contributors</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── MAP ──────────────────────────────────────────────────────────────────────
+const map = L.map('map', { center:[39.135,-76.690], zoom:12 });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom:19
+}).addTo(map);
+
+// ── GEOMETRY ─────────────────────────────────────────────────────────────────
+function destination(lat, lon, brg, distNm) {
+  const R=6371000, d=distNm*1852/R, b=brg*Math.PI/180;
+  const φ1=lat*Math.PI/180, λ1=lon*Math.PI/180;
+  const φ2=Math.asin(Math.sin(φ1)*Math.cos(d)+Math.cos(φ1)*Math.sin(d)*Math.cos(b));
+  const λ2=λ1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(φ1),Math.cos(d)-Math.sin(φ1)*Math.sin(φ2));
+  return [φ2*180/Math.PI, λ2*180/Math.PI];
+}
+function bearingTo(lat1,lon1,lat2,lon2) {
+  const φ1=lat1*Math.PI/180, φ2=lat2*Math.PI/180, dλ=(lon2-lon1)*Math.PI/180;
+  return (Math.atan2(Math.sin(dλ)*Math.cos(φ2),Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(dλ))*180/Math.PI+360)%360;
+}
+function arcPts(cLat,cLon,rNm,s,e,steps=50) {
+  const pts=[]; if(e<s) e+=360;
+  for(let i=0;i<=steps;i++){const b=s+(e-s)*i/steps; pts.push(destination(cLat,cLon,b%360,rNm));}
+  return pts;
+}
+
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const BWI     = [39.16407,-76.66200]; // manually calibrated 16 May 2026
+const BOBYJ   = [39.190375,-76.760503];
+const WARYN   = [39.154175,-76.653622];
+const BRGHT   = [39.11095,-76.63271];
+const ASHBROOK= [39.112804,-76.657923];
+const EWBLVD  = [39.10623,-76.60828];
+const BRETTON = [39.079,-76.656];
+const AURORA  = [39.086,-76.649];
+
+const DEP_HDG=155.0, BANK=25.0, RWY_ELEV=154;
+const g=32.174, v=200*1.68781;
+const R_NM=(v*v/(g*Math.tan(BANK*Math.PI/180)))/6076.115;
+const BRG_BOBYJ=bearingTo(BRGHT[0],BRGHT[1],BOBYJ[0],BOBYJ[1]);
+
+const aircraft=[
+  {climb:950,dash:false},{climb:780,dash:true},
+  {climb:850,dash:false},{climb:720,dash:true}
+];
+
+const altConfig={
+  800: {color:'#E63232',lw:2,spl_max8:51.4,spl_ng:55.9,
+    community:'Linthicum / Brooklyn Park — dense residential directly under turn arc at very low altitude. No improvement over current procedure.'},
+  900: {color:'#E65A1E',lw:2,spl_max8:52.1,spl_ng:56.6,
+    community:'Linthicum / Brooklyn Park — marginally less acute than 800 ft but same communities affected.'},
+  1000:{color:'#D48C1E',lw:2,spl_max8:52.9,spl_ng:57.4,
+    community:'Essentially identical to current WARYN geometry. Turn at ~1.02 nm — no meaningful improvement for Severn residential communities.'},
+  1100:{color:'#C0B41E',lw:2,spl_max8:53.6,spl_ng:58.1,
+    community:'Residential Severn near airport perimeter — modest southward shift, still concentrated over homes.'},
+  1200:{color:'#8CBE1E',lw:2,spl_max8:54.4,spl_ng:58.9,
+    community:'Residential Severn — 1,200 ft remains well short of meaningful community relief.'},
+  3000:{color:'#19B973',lw:3,spl_max8:63.1,spl_ng:67.6,
+    community:'Severn Run Natural Environment Area — largely uninhabited. Arc clears residential communities. ~10 dB improvement at Ashbrook vs current WARYN procedure.'}
+};
+
+// ── LAYER GROUPS ──────────────────────────────────────────────────────────────
+const layerGroups={};
+for(const alt of [800,900,1000,1100,1200,3000]) layerGroups[alt]=L.layerGroup();
+
+// ── BUILD TRACKS ──────────────────────────────────────────────────────────────
+function buildTracks() {
+  // Departure centerline dashed
+  const depFar=destination(BWI[0],BWI[1],DEP_HDG,5.5);
+  L.polyline([[BWI[0],BWI[1]],[depFar[0],depFar[1]]],
+    {color:'#aaa',weight:1,opacity:0.4,dashArray:'4 5'}).addTo(map);
+
+  for(const [altStr,cfg] of Object.entries(altConfig)) {
+    const alt=parseInt(altStr);
+    const grp=layerGroups[alt];
+
+    for(const ac of aircraft) {
+      let tlat,tlon;
+      if(alt===3000){
+        tlat=BRGHT[0]; tlon=BRGHT[1];
+      } else {
+        const tp=destination(BWI[0],BWI[1],DEP_HDG,(alt-RWY_ELEV)/ac.climb);
+        tlat=tp[0]; tlon=tp[1];
+      }
+      const brgB=bearingTo(tlat,tlon,BOBYJ[0],BOBYJ[1]);
+      const ctr=destination(tlat,tlon,(DEP_HDG+90)%360,R_NM);
+      const arc=arcPts(ctr[0],ctr[1],R_NM,(DEP_HDG+90+180)%360,(brgB+270)%360);
+
+      const splVal=(ac.climb>=850?cfg.spl_max8:cfg.spl_ng).toFixed(1);
+      const splClass=alt===3000?'pop-good':alt<=1000?'pop-bad':'pop-warn';
+      const distStr=alt===3000?'BRGHT waypoint — 3.74 nm (fixed for all aircraft)':
+        ((alt-RWY_ELEV)/ac.climb).toFixed(2)+' nm (performance-dependent)';
+      const acLabel=ac.climb>=900?'Light/fast climber':'Heavy/slow climber';
+
+      const popup=`<div class="pop-title">${altConfig[alt===3000?3000:alt].color?'':''}`+
+        `Turn at ${alt===3000?'3,000 ft (BRGHT)':alt+' ft'} — ${acLabel}</div>`+
+        `<div>Turn initiation: ${distStr}</div>`+
+        `<div>Est. SPL at Ashbrook: <span class="${splClass}">${splVal} dBA</span></div>`+
+        `<div class="pop-note">${cfg.community}</div>`;
+
+      const opts={color:cfg.color,weight:cfg.lw,opacity:0.85,dashArray:ac.dash?'6 5':null};
+
+      // Departure segment → turn point
+      L.polyline([[BWI[0],BWI[1]],[tlat,tlon]],opts).bindPopup(popup).addTo(grp);
+      // Arc
+      L.polyline(arc,opts).bindPopup(popup).addTo(grp);
+      // Post-turn stub
+      if(arc.length>0){
+        const ep=arc[arc.length-1];
+        const post=destination(ep[0],ep[1],brgB,1.5);
+        L.polyline([[ep[0],ep[1]],[post[0],post[1]]],opts).bindPopup(popup).addTo(grp);
+      }
+    }
+    grp.addTo(map);
+  }
+}
+
+// ── MARKERS ───────────────────────────────────────────────────────────────────
+function makeIcon(col,r=10) {
+  return L.divIcon({className:'',
+    html:`<div style="width:${r}px;height:${r}px;border-radius:50%;background:${col};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
+    iconSize:[r,r],iconAnchor:[r/2,r/2]});
+}
+function addLabel(latlng,text,col='#333',ox=10,oy=-8) {
+  L.marker(latlng,{icon:L.divIcon({className:'',
+    html:`<div style="font-size:11px;font-family:'Inter',sans-serif;color:${col};white-space:nowrap;font-weight:500;text-shadow:0 1px 2px rgba(255,255,255,0.9),0 0 4px rgba(255,255,255,0.8);margin-left:${ox}px;margin-top:${oy}px;">${text}</div>`,
+    iconSize:[0,0],iconAnchor:[0,0]})}).addTo(map);
+}
+
+// BWI
+L.marker(BWI,{icon:makeIcon('#fff',14)})
+  .bindPopup(`<div class="pop-title">BWI Runway 15R — Departure Threshold</div>`+
+    `39.16407°N, 76.66200°W<br>Departure heading: 155°<br>`+
+    `Minimum climb gradient: 780 ft/NM<br>`+
+    `<div class="pop-note">Position manually calibrated on map, 16 May 2026</div>`)
+  .addTo(map);
+addLabel(BWI,'RWY 15R','#333');
+
+// WARYN
+L.marker(WARYN,{icon:makeIcon('#E63232',12)})
+  .bindPopup(`<div class="pop-title">WARYN — Current Turn Initiation</div>`+
+    `39°09'17.03"N, 076°39'13.04"W<br>`+
+    `0.99 nm from runway threshold<br>`+
+    `No crossing altitude — aircraft arrive at 2,000–2,500 ft MSL<br>`+
+    `<div class="pop-note">Median complaint altitude: 2,450 ft (94 AirNoise events, Oct 2025–Apr 2026). `+
+    `The 1,000 ft altitude restriction is geometrically equivalent to WARYN.</div>`)
+  .addTo(map);
+addLabel(WARYN,'WARYN (current)','#b03');
+
+// BRGHT
+L.marker(BRGHT,{icon:makeIcon('#19B973',14)})
+  .bindPopup(`<div class="pop-title">BRGHT — Proposed Waypoint</div>`+
+    `39°06'39.42"N, 076°37'57.76"W<br>`+
+    `Brightview Drive / Route 97 overpass, Severn MD<br>`+
+    `3.74 nm from runway threshold<br>`+
+    `Altitude at 780 ft/NM gradient: 3,067 ft MSL<br>`+
+    `Proposed turn altitude: 3,000 ft MSL<br>`+
+    `Turn angle to BOBYJ: 155.1° (identical to WARYN)<br>`+
+    `<div class="pop-note pop-good">All aircraft converge on this point — no performance-based dispersion. `+
+    `Turn arc sweeps over Severn Run Natural Environment Area.</div>`)
+  .addTo(map);
+addLabel(BRGHT,'BRGHT (proposed)','#0F6E56');
+
+// Ashbrook
+L.marker(ASHBROOK,{icon:makeIcon('#FFD740',10)})
+  .bindPopup(`<div class="pop-title">Ashbrook — TrueNoise Observer</div>`+
+    `39.1128°N, 76.6579°W · Severn, Maryland<br>`+
+    `Validated measurement: <span class="pop-bad">72.4 dBA</span> (A320, 9 May 2026)<br>`+
+    `AirNoise complaints: 94 departure events, Oct 2025–Apr 2026<br>`+
+    `Median complaint altitude: 2,450 ft MSL<br>`+
+    `<div class="pop-note">Model calibrated to this measurement. BRGHT procedure estimated at 63 dBA here — approximately half the perceived loudness.</div>`)
+  .addTo(map);
+addLabel(ASHBROOK,'Ashbrook (observer)','#7a5900',-90,4);
+
+// East-West Blvd
+L.marker(EWBLVD,{icon:makeIcon('#8888ff',9)})
+  .bindPopup(`<div class="pop-title">East-West Blvd / Springbloom Dr</div>`+
+    `39.10623°N, 76.60828°W<br>`+
+    `Planned field measurement location (bike path)<br>`+
+    `ADS-B confirmed: approach aircraft pass within 0.08 nm<br>`+
+    `Empirical approach altitude: ~1,476 ft MSL (N455WN, 15 May 2026)<br>`+
+    `BRGHT departure altitude at this point: ~3,728 ft MSL<br>`+
+    `<div class="pop-note">Departure aircraft on BRGHT track are ~2,252 ft higher than approach aircraft at this location — substantially quieter.</div>`)
+  .addTo(map);
+addLabel(EWBLVD,'E-W Blvd measurement site','#445');
+
+// Bretton Woods
+L.marker(BRETTON,{icon:makeIcon('#cc88cc',8)})
+  .bindPopup(`<div class="pop-title">Bretton Woods</div>`+
+    `39.079°N, 76.656°W · South of Severn Run<br>`+
+    `Community south of Severn Run Natural Environment Area<br>`+
+    `Under BRGHT post-turn track toward BOBYJ<br>`+
+    `<div class="pop-note pop-good">Estimated SPL: 57–58 dBA at 3,000 ft turn altitude. `+
+    `Lateral distance from track: 2.20 nm. Below N65 threshold at all modeled altitudes. `+
+    `Burden-shifting standard satisfied.</div>`)
+  .addTo(map);
+addLabel(BRETTON,'Bretton Woods','#664466');
+
+// Aurora Hills
+L.marker(AURORA,{icon:makeIcon('#8888cc',8)})
+  .bindPopup(`<div class="pop-title">Aurora Hills</div>`+
+    `39.086°N, 76.649°W · South of Severn Run<br>`+
+    `Community south of Severn Run Natural Environment Area<br>`+
+    `<div class="pop-note pop-warn">Estimated SPL: 61 dBA at 3,000 ft turn altitude. `+
+    `Lateral distance from track: 1.68 nm. Moderate impact — below N65 at all altitudes. `+
+    `Burden-shifting standard satisfied.</div>`)
+  .addTo(map);
+addLabel(AURORA,'Aurora Hills','#446');
+
+// BOBYJ
+L.marker(BOBYJ,{icon:makeIcon('#8888ff',9)})
+  .bindPopup(`<div class="pop-title">BOBYJ Waypoint</div>`+
+    `39°11'25.35"N, 076°45'35.81"W<br>`+
+    `All westbound departures converge here<br>`+
+    `Crossing restriction: at or above 4,000 ft, at or below 230 kts<br>`+
+    `<div class="pop-note">Common destination for all six modeled procedures. Only the path differs.</div>`)
+  .addTo(map);
+addLabel(BOBYJ,'BOBYJ','#446',-65,-8);
+
+// Severn Run label
+addLabel([39.100,-76.660],'Severn Run Nature Area','#2d6e2d');
+
+// ── TOGGLE ────────────────────────────────────────────────────────────────────
+function toggleAlt(alt) {
+  const cb=document.getElementById('cb'+alt);
+  cb.checked=!cb.checked;
+  cb.checked?layerGroups[alt].addTo(map):map.removeLayer(layerGroups[alt]);
+}
+
+// ── MOBILE NAV ────────────────────────────────────────────────────────────────
+function openMenu(){document.getElementById('mobileMenu').classList.add('open');}
+function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
+function closeMenuOutside(e){if(e.target===document.getElementById('mobileMenu'))closeMenu();}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildTracks();
+
+
+
+
+</script>
+
+  <!-- LINK TO SENSITIVITY PAGE -->
+  <div style="border-top:3px solid var(--border);padding:32px 40px;background:var(--gray-50);">
+    <div class="page-eyebrow">Sensitivity analysis</div>
+    <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400;
+               color:var(--text);margin-bottom:12px;line-height:1.2;">
+      Explore the BRGHT altitude tradeoff interactively
+    </h2>
+    <p class="prose" style="max-width:640px;margin-bottom:20px;">
+      The six-altitude comparison above shows that 800–1,200 ft restrictions produce no
+      meaningful relief. The sensitivity tool lets you vary the BRGHT turn altitude from
+      3,000 to 5,000 ft and instantly see the impact on Ashbrook, Aurora Hills, and
+      Bretton Woods — alongside the fuel cost tradeoff. The model suggests
+      <strong>~4,100 ft</strong> as the sweet spot where Ashbrook drops below the
+      N65 threshold at commercially immaterial fuel cost.
+    </p>
+    <a href="sensitivity.html" style="display:inline-flex;align-items:center;gap:8px;
+       background:var(--teal);color:#fff;padding:10px 20px;border-radius:6px;
+       font-size:13px;font-weight:500;text-decoration:none;">
+      Open the sensitivity tool →
+    </a>
+  </div>
+
+</body>
+</html>
