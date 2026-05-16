@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Measurement Gap — TrueNoise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal:#1D9E75; --teal-light:#E1F5EE; --teal-dark:#0F6E56;
+    --amber:#BA7517; --amber-light:#FAEEDA;
+    --gray-50:#F8F7F4; --gray-100:#F1EFE8;
+    --text:#1a1a18; --text-muted:#5F5E5A; --text-dim:#888780;
+    --border:rgba(0,0,0,0.09); --border-mid:rgba(0,0,0,0.14);
+  }
+  body { font-family:'Inter',sans-serif; background:#fff; color:var(--text); line-height:1.6; }
+  a { color:var(--teal); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .app { display:flex; min-height:100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width:220px; min-width:220px; border-right:1px solid var(--border);
+             display:flex; flex-direction:column; position:sticky; top:0;
+             height:100vh; overflow-y:auto; background:#fff; }
+  .logo { padding:24px 20px 20px; border-bottom:1px solid var(--border); }
+  .logo-mark { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .logo-name { font-size:18px; font-weight:600; letter-spacing:-0.4px; color:var(--text); }
+  .logo-name span { color:var(--teal); }
+  .logo-tagline { font-size:10px; color:var(--text-dim); letter-spacing:0.08em;
+                  text-transform:uppercase; margin-top:2px; }
+  .nav { padding:16px 12px; flex:1; }
+  .nav-group { margin-bottom:20px; }
+  .nav-group-label { font-size:10px; color:var(--text-dim); letter-spacing:0.1em;
+                     text-transform:uppercase; padding:0 8px; margin-bottom:4px; }
+  .nav-item { display:flex; align-items:center; gap:8px; padding:7px 8px;
+              border-radius:6px; font-size:13px; color:var(--text-muted);
+              text-decoration:none; transition:background 0.15s,color 0.15s; }
+  .nav-item:hover { background:var(--gray-100); color:var(--text); text-decoration:none; }
+  .nav-item.active { background:var(--teal-light); color:var(--teal-dark); font-weight:500; }
+  .nav-icon { font-size:15px; width:18px; text-align:center; }
+  .sidebar-footer { padding:16px 20px; border-top:1px solid var(--border);
+                    font-size:11px; color:var(--text-dim); line-height:1.5; }
+  .sidebar-footer a { color:var(--text-dim); }
+  .sidebar-footer a:hover { color:var(--teal); }
+
+  /* MAIN */
+  .main { flex:1; min-width:0; }
+  .topbar { padding:14px 40px; border-bottom:1px solid var(--border);
+            display:flex; align-items:center; justify-content:space-between;
+            background:#fff; position:sticky; top:0; z-index:10; }
+  .topbar-title { font-size:14px; font-weight:500; }
+  .topbar-sub { font-size:12px; color:var(--text-dim); margin-top:1px; }
+
+  /* ARTICLE */
+  .article { max-width:720px; margin:0 auto; padding:48px 40px 80px; }
+
+  .article-eyebrow { font-size:11px; color:var(--teal); letter-spacing:0.12em;
+                     text-transform:uppercase; font-family:'DM Mono',monospace;
+                     margin-bottom:10px; }
+  .article-title { font-family:'DM Serif Display',serif; font-size:2.2rem;
+                   font-weight:400; color:var(--text); line-height:1.15;
+                   margin-bottom:8px; }
+  .article-subtitle { font-size:15px; color:var(--text-muted); line-height:1.5;
+                      margin-bottom:20px; }
+  .article-meta { font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace;
+                  padding-bottom:24px; border-bottom:1px solid var(--border);
+                  margin-bottom:32px; }
+
+  /* ABSTRACT */
+  .abstract { background:var(--gray-50); border:1px solid var(--border);
+              border-radius:8px; padding:20px 24px; margin-bottom:36px; }
+  .abstract-label { font-size:10px; color:var(--text-dim); letter-spacing:0.12em;
+                    text-transform:uppercase; font-family:'DM Mono',monospace;
+                    margin-bottom:10px; }
+  .abstract p { font-size:13px; color:var(--text-muted); line-height:1.85;
+                margin-bottom:10px; }
+  .abstract p:last-child { margin-bottom:0; }
+
+  /* BODY TEXT */
+  .prose { font-size:15px; color:var(--text-muted); line-height:1.9;
+           margin-bottom:18px; }
+  .prose strong { color:var(--text); font-weight:500; }
+
+  /* SECTION HEADERS */
+  .section-divider { border:none; border-top:1px solid var(--border);
+                     margin:40px 0 32px; }
+  .section-num { font-size:10px; color:var(--teal); letter-spacing:0.12em;
+                 text-transform:uppercase; font-family:'DM Mono',monospace;
+                 margin-bottom:6px; }
+  .section-title { font-family:'DM Serif Display',serif; font-size:1.4rem;
+                   font-weight:400; color:var(--text); margin-bottom:18px;
+                   line-height:1.2; }
+
+  /* PULL QUOTE */
+  .pull-quote { border-left:3px solid var(--teal); padding:14px 20px;
+                margin:28px 0; border-radius:0 6px 6px 0;
+                background:var(--teal-light); }
+  .pull-quote p { font-size:14px; color:var(--text); line-height:1.75;
+                  font-style:italic; }
+
+  /* CITATION */
+  .citation { font-size:12px; color:var(--text-dim); background:var(--gray-50);
+              border-left:2px solid var(--border-mid); padding:10px 14px;
+              border-radius:0 4px 4px 0; margin:16px 0; line-height:1.6;
+              font-family:'DM Mono',monospace; }
+  .citation strong { color:var(--text-muted); font-weight:500; }
+
+  /* COMPARISON TABLE */
+  .compare { width:100%; border-collapse:collapse; margin:24px 0; font-size:13px; }
+  .compare th { text-align:left; font-size:10px; color:var(--text-dim);
+                letter-spacing:0.08em; text-transform:uppercase; padding:8px 14px;
+                border-bottom:2px solid var(--border-mid); font-family:'DM Mono',monospace;
+                font-weight:400; }
+  .compare td { padding:10px 14px; border-bottom:1px solid var(--border);
+                vertical-align:top; line-height:1.65; color:var(--text-muted); }
+  .compare tr:last-child td { border-bottom:none; }
+  .compare .col-label { font-weight:500; color:var(--text); width:30%; }
+  .compare .col-ldn { background:rgba(186,117,23,0.04); }
+  .compare .col-event { background:rgba(29,158,117,0.04); }
+
+  /* BIBLIOGRAPHY */
+  .bib { margin-top:8px; }
+  .bib-item { padding:12px 0; border-bottom:1px solid var(--border);
+              font-size:13px; color:var(--text-muted); line-height:1.7; }
+  .bib-item:last-child { border-bottom:none; }
+  .bib-item .bib-label { font-family:'DM Mono',monospace; font-size:11px;
+                          color:var(--teal-dark); margin-bottom:3px; font-weight:500; }
+  .bib-item .bib-title { color:var(--text); font-style:italic; }
+
+  /* MOBILE */
+  .mobile-nav { display:none; position:sticky; top:0; z-index:20; background:#fff;
+                border-bottom:1px solid var(--border); padding:12px 16px;
+                align-items:center; justify-content:space-between; }
+  .mobile-logo { font-size:16px; font-weight:600; color:var(--text); }
+  .mobile-logo span { color:var(--teal); }
+  .hamburger { background:none; border:1px solid var(--border); border-radius:6px;
+               padding:6px 8px; cursor:pointer; font-size:16px; color:var(--text-muted); }
+  .mobile-menu { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+                 background:rgba(0,0,0,0.4); z-index:100; }
+  .mobile-menu.open { display:block; }
+  .mobile-menu-panel { background:#fff; width:260px; height:100%;
+                       padding:20px 16px; overflow-y:auto; }
+  .mobile-menu-close { background:none; border:none; font-size:20px; cursor:pointer;
+                       color:var(--text-muted); margin-bottom:16px; display:block; }
+
+  @media (max-width:860px) {
+    .sidebar { display:none; }
+    .mobile-nav { display:flex; }
+    .topbar { padding:12px 16px; }
+    .article { padding:32px 20px 60px; }
+    .article-title { font-size:1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-nav">
+  <a href="index.html" style="text-decoration:none;">
+    <div class="mobile-logo">True<span>Noise</span></div>
+  </a>
+  <button class="hamburger" onclick="document.getElementById('mobileMenu').classList.add('open')">☰</button>
+</div>
+<div class="mobile-menu" id="mobileMenu"
+     onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close"
+            onclick="document.getElementById('mobileMenu').classList.remove('open')">✕</button>
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:20px;">
+      True<span style="color:var(--teal)">Noise</span></div>
+    <a href="dashboard.html" class="nav-item" style="display:flex;margin-bottom:2px;">📊 Health dashboard</a>
+    <a href="flightpath.html" class="nav-item" style="display:flex;margin-bottom:2px;">🗺 Flight path analysis</a>
+    <a href="sensitivity.html" class="nav-item" style="display:flex;margin-bottom:2px;">🎚 Altitude sensitivity</a>
+    <a href="measurement-gap.html" class="nav-item active" style="display:flex;margin-bottom:2px;">📐 The measurement gap</a>
+    <a href="methodology.html" class="nav-item" style="display:flex;margin-bottom:2px;">🔬 Methodology</a>
+    <a href="data.html" class="nav-item" style="display:flex;margin-bottom:2px;">⬇ Download data</a>
+    <a href="about.html" class="nav-item" style="display:flex;">ℹ About &amp; Contact</a>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <a href="index.html" style="text-decoration:none;display:block;">
+        <div class="logo-mark">
+          <svg viewBox="0 0 42 28" fill="none" xmlns="http://www.w3.org/2000/svg"
+               style="width:38px;height:26px;">
+            <path d="M2 14 Q7 3 12 14 Q17 25 22 14 Q27 3 32 14 Q37 25 42 14"
+                  stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <div><div class="logo-name">True<span>Noise</span></div></div>
+        </div>
+        <div class="logo-tagline">Environmental noise research</div>
+      </a>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span> Health dashboard</a>
+        <a href="dashboard.html#aircraft" class="nav-item"><span class="nav-icon">✈</span> Aircraft analysis</a>
+        <a href="dashboard.html#time" class="nav-item"><span class="nav-icon">🕐</span> Time patterns</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Research</div>
+        <a href="flightpath.html" class="nav-item"><span class="nav-icon">🗺</span> Flight path analysis</a>
+        <a href="sensitivity.html" class="nav-item"><span class="nav-icon">🎚</span> Altitude sensitivity</a>
+        <a href="measurement-gap.html" class="nav-item active"><span class="nav-icon">📐</span> The measurement gap</a>
+        <a href="methodology.html" class="nav-item"><span class="nav-icon">🔬</span> Methodology</a>
+        <a href="data.html" class="nav-item"><span class="nav-icon">⬇</span> Download data</a>
+        <a href="about.html" class="nav-item"><span class="nav-icon">ℹ</span> About &amp; Contact</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Independent community monitoring.<br>
+      Not affiliated with any airport,<br>airline, or government agency.<br><br>
+      <a href="methodology.html">Methodology</a> · <a href="about.html">About</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">The measurement gap</div>
+        <div class="topbar-sub">Why the tool we use to measure aircraft noise was not designed to protect health</div>
+      </div>
+    </div>
+
+    <article class="article">
+
+      <div class="article-eyebrow">Research · Policy analysis</div>
+      <h1 class="article-title">The Measurement Gap</h1>
+      <p class="article-subtitle">Why the tool we use to measure aircraft noise was not designed to protect health</p>
+      <div class="article-meta">
+        TrueNoise.org · Severn, Maryland · Draft May 2026 ·
+        <a href="data.html">Raw data</a> ·
+        <a href="methodology.html">Measurement methodology</a>
+      </div>
+
+      <!-- ABSTRACT -->
+      <div class="abstract">
+        <div class="abstract-label">Abstract</div>
+        <p>
+          Aviation noise policy in the United States has relied for fifty years on a single
+          metric — the day-night average sound level (Ldn) — to assess community noise
+          exposure and guide land use planning near airports. Ldn was developed in the early
+          1970s as a tool for long-term cumulative exposure tracking and cross-community
+          comparison. It was not designed to capture the event-driven nature of aircraft
+          noise or the acute physiological mechanisms by which noise exposure produces
+          cardiovascular disease, sleep disruption, and cognitive impairment.
+        </p>
+        <p>
+          Three decades of epidemiological research — including the HYENA and RANCH studies
+          — has established that discrete noise events, not average levels, are the primary
+          drivers of health harm. The same research reveals that Ldn's regulatory threshold
+          of 65 dB has not been updated to reflect this evidence. Communities experiencing
+          dozens of high-peak overflights per day may fall below the regulatory threshold
+          while sustaining documented physiological harm.
+        </p>
+        <p>
+          This paper argues that the gap between what we know and what we measure is not a
+          technical problem — it is a policy problem. Event-based, psychoacoustic measurement
+          is feasible today using consumer hardware and calibrated software. The path forward
+          is to add event-based metrics to the regulatory toolkit as a necessary complement
+          to Ldn, not as its replacement. TrueNoise.org is an early demonstration that this
+          approach is practical at community scale.
+        </p>
+      </div>
+
+      <!-- OPENING -->
+      <div class="section-num">Opening</div>
+      <p class="prose">
+        For fifty years, aviation noise policy has been built on a single metric: the
+        day-night average sound level, or Ldn. It was a reasonable tool for its time and
+        purpose. But the science of how noise harms the human body has advanced considerably
+        since the 1970s — and the gap between what we now know and what we currently measure
+        has real consequences for communities living beneath flight paths.
+      </p>
+
+      <!-- SECTION 4 — WHAT RESEARCH SHOWS (moved to front) -->
+      <hr class="section-divider">
+      <div class="section-num">What the research shows</div>
+      <h2 class="section-title">Discrete events drive health harm — not averages</h2>
+
+      <p class="prose">
+        The epidemiological research conducted over the past three decades consistently finds
+        that discrete noise events — not average levels — are the primary driver of the
+        health outcomes associated with aircraft noise.
+      </p>
+
+      <div class="citation">
+        <div><strong>HYENA study:</strong> Peak noise events were a stronger predictor of
+        hypertension risk than average exposure levels. Residents exposed to frequent
+        high-peak events showed elevated cardiovascular risk even when their average daily
+        exposure fell within accepted regulatory limits.</div>
+        <div style="margin-top:6px;">Jarup et al. (2008). <span style="font-style:italic;">Environmental Health Perspectives</span> 116(3):329–333</div>
+      </div>
+
+      <div class="citation">
+        <div><strong>RANCH study:</strong> The number of noise events above threshold —
+        not the average level — was the significant predictor of reading comprehension and
+        memory deficits in children attending schools near airports.</div>
+        <div style="margin-top:6px;">Stansfeld et al. (2005). <span style="font-style:italic;">The Lancet</span> 365(9475):1942–1949</div>
+      </div>
+
+      <div class="citation">
+        <div><strong>WHO Environmental Noise Guidelines (2018):</strong> Explicitly
+        acknowledged the limitations of average-level metrics for community health assessment
+        and called for supplementary event-based exposure metrics, noting that metrics
+        capturing event frequency and peak level better reflect health-relevant exposure.
+        The regulatory frameworks built on Ldn have not yet caught up.</div>
+        <div style="margin-top:6px;">WHO Environmental Noise Guidelines for the European Region (2018)</div>
+      </div>
+
+      <p class="prose">
+        The stress physiology is straightforward. A single aircraft overflight above 65 dBA
+        triggers a measurable cortisol response. Research shows cortisol requires a minimum
+        of 15 minutes to return to baseline after such an event. If the next overflight
+        arrives before recovery is complete, stress hormones compound. Over months and years,
+        this chronic physiological stress is the mechanism by which aircraft noise produces
+        cardiovascular disease, hypertension, and metabolic dysfunction. A 24-hour average
+        is blind to whether that recovery ever happened.
+      </p>
+
+      <!-- SECTION 1 -->
+      <hr class="section-divider">
+      <div class="section-num">Section 1</div>
+      <h2 class="section-title">What Ldn was designed to do — and what it does well</h2>
+
+      <p class="prose">
+        Ldn — the day-night average sound level — was developed in the early 1970s by the
+        U.S. Environmental Protection Agency (EPA) to compare noise exposure across
+        environments and inform land use planning. It averages all sound energy over a
+        24-hour period, applying a 10 dB penalty to nighttime events to acknowledge their
+        greater disturbance potential. The FAA adopted it as the standard for aviation noise
+        assessment in 1981.
+      </p>
+      <p class="prose">
+        Where Ldn genuinely works is in long-term cumulative exposure tracking. The
+        epidemiological studies that established the link between aircraft noise and
+        cardiovascular disease — HYENA (Health Effects of Noise Near Airports, European
+        Commission, 2002–2006), RANCH (Road Traffic and Aircraft Noise Exposure and
+        Children's Cognition and Health, European Commission, 2001–2005), and others —
+        were largely built on Ldn-derived exposure estimates, and they produced real,
+        replicable findings. The dose-response curves showing increased hypertension risk
+        above 55 dB Ldn are not artifacts of a bad metric. They reflect the fact that
+        chronic disease accumulates over years of exposure, and an integrating metric
+        captures that load in ways that a single event count cannot. Ldn also enables
+        cross-community and longitudinal comparison — a common currency that allows
+        researchers to ask whether noise near BWI is worse than near O'Hare, or whether
+        it has changed over a decade.
+      </p>
+
+      <div class="pull-quote">
+        <p>The problem is not that Ldn exists. The problem is that it has become the only
+        tool, applied to questions it was not designed to answer, with thresholds that have
+        not been updated as the underlying science has advanced.</p>
+      </div>
+
+      <!-- SECTION 2 -->
+      <hr class="section-divider">
+      <div class="section-num">Section 2</div>
+      <h2 class="section-title">The studies that built the case were event-aware all along</h2>
+
+      <p class="prose">
+        There is an important detail about those foundational epidemiological studies that
+        is rarely discussed: the Ldn values used in HYENA, RANCH, and similar research were
+        not computed from continuous steady-state noise. They were computed from aircraft
+        event logs — records of individual flights with individual noise levels. The
+        researchers had the event data. They then summarized it into an average for the
+        statistical model.
+      </p>
+      <p class="prose">
+        The averaging in Ldn-based health research was a modeling choice, not a physical
+        reality. The underlying exposure was always event-driven. Researchers who have
+        returned to those same datasets and analyzed event-level variables — peak levels,
+        event counts, inter-event intervals — have found stronger dose-response relationships
+        than the averaged models produced.
+      </p>
+
+      <div class="pull-quote">
+        <p>The scientific foundation for event-based measurement already exists within the
+        Ldn literature — it was simply never fully extracted. The signal is there.
+        Averaging dilutes it.</p>
+      </div>
+
+      <!-- SECTION 3 -->
+      <hr class="section-divider">
+      <div class="section-num">Section 3</div>
+      <h2 class="section-title">Averaging conceals what communities actually experience</h2>
+
+      <p class="prose">
+        Aircraft noise is not a steady hum. It is a series of discrete events — each with
+        a distinct onset, peak, spectral character, and duration — separated by intervals
+        of relative quiet. The health effects most documented in modern research are
+        triggered by those events: the cortisol spike from a startle response, the sleep
+        fragmentation from a nighttime overflight, the compounding stress when recovery
+        time is too short. None of these mechanisms are captured by a 24-hour average.
+      </p>
+      <p class="prose">
+        A neighborhood experiencing 40 sharp 75 dBA overflights per day and a neighborhood
+        exposed to steady 58 dBA road traffic can produce identical Ldn values. The
+        physiological experience — and the health risk — are not remotely comparable.
+        The average is mathematically accurate. It simply does not measure what causes
+        the harm.
+      </p>
+      <p class="prose">
+        This is not a flaw in the mathematics of Ldn. It is a category error — applying an
+        averaging metric to an event-driven phenomenon. The metric was calibrated against
+        community annoyance surveys from the 1970s, not against modern cardiovascular and
+        cognitive health endpoints. If you recalibrated the regulatory threshold of 65 dB
+        Ldn using current health evidence, it would move significantly downward — and the
+        compatibility contours that have governed residential development near airports for
+        decades would expand significantly outward.
+      </p>
+      <p class="prose">
+        Communities falling below the 65 dB Ldn threshold are not necessarily safe. They
+        may simply be experiencing harm that the current measurement framework cannot see.
+      </p>
+      <p class="prose">
+        The consequences are not abstract. Land use planning built on Ldn contours has
+        determined where residential development is permitted near major airports for forty
+        years. Families have purchased homes in areas the contour maps designated as
+        compatible while experiencing dozens of overflights per day that exceed 70 dBA,
+        disrupt sleep, and produce the physiological harm documented in the peer-reviewed
+        literature. The contour said compatible. The body said otherwise.
+      </p>
+
+      <!-- SECTION 5 -->
+      <hr class="section-divider">
+      <div class="section-num">Section 4</div>
+      <h2 class="section-title">Event-based measurement is not intractable — it just hasn't been tried</h2>
+
+      <p class="prose">
+        The conventional objection to event-based community noise monitoring is practical:
+        deploying calibrated sound level meters continuously across a community is expensive,
+        technically demanding, and produces data that is difficult to summarize for policy.
+        That objection made sense when continuous monitoring required dedicated hardware at
+        every measurement point.
+      </p>
+      <p class="prose">
+        It does not make sense anymore. The smartphone in nearly every resident's pocket
+        contains a microphone, a GPS receiver, a high-performance digital signal processor,
+        and a network connection. With the right software — software that implements the
+        same IEC 61672 A-weighting and ISO 532 psychoacoustic analysis used in professional
+        instruments — a distributed community monitoring network becomes feasible at a
+        fraction of the cost of traditional approaches.
+      </p>
+      <p class="prose">
+        TrueNoise has demonstrated this on a minimal budget. A small number of monitoring
+        sessions near BWI Airport, using a consumer microphone and a calibrated iPhone app,
+        produced a richer characterization of community noise exposure — event counts,
+        psychoacoustic profiles, recovery deficits, aircraft-level detail — than most Ldn
+        studies ever achieved. The point is event-based characterization is feasible now.
+      </p>
+
+      <!-- SECTION 6 — COMPARISON TABLE -->
+      <hr class="section-divider">
+      <div class="section-num">Section 5</div>
+      <h2 class="section-title">Two approaches compared</h2>
+
+      <table class="compare">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Day-night average (Ldn)</th>
+            <th>Event-based psychoacoustic analysis</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-label">What it measures</td>
+            <td class="col-ldn">Logarithmic average of all sound energy over 24 hours, with 10 dB nighttime penalty</td>
+            <td class="col-event">Each discrete event: peak level, loudness in sone, spectral sharpness, onset rate, annoyance index, and inter-event recovery interval</td>
+          </tr>
+          <tr>
+            <td class="col-label">Best use</td>
+            <td class="col-ldn">Long-term cumulative exposure tracking; cross-community and longitudinal comparison; epidemiological cohort studies</td>
+            <td class="col-event">Community health assessment; sleep disruption analysis; cardiovascular stress monitoring; policy compliance with event-level thresholds</td>
+          </tr>
+          <tr>
+            <td class="col-label">Blind to</td>
+            <td class="col-ldn">Event frequency, inter-event recovery intervals, onset characteristics, psychoacoustic qualities determining annoyance and acute stress</td>
+            <td class="col-event">Long-term cumulative exposure if used alone; cross-site comparison without standardized thresholds</td>
+          </tr>
+          <tr>
+            <td class="col-label">Threshold calibration</td>
+            <td class="col-ldn">1970s community annoyance surveys — not updated to reflect modern cardiovascular or cognitive health endpoints</td>
+            <td class="col-event">Modern stress physiology and sleep science; WHO 2018 guidelines; peer-reviewed dose-response research</td>
+          </tr>
+          <tr>
+            <td class="col-label">Relationship</td>
+            <td class="col-ldn" colspan="2" style="background:var(--teal-light);color:var(--text);">
+              These approaches are complementary. Ldn remains useful for the purposes it was
+              designed for. The evidence supports adding event-based metrics as a necessary
+              complement — not a replacement — for community health assessment and land use
+              decisions near airports.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- CLOSING -->
+      <hr class="section-divider">
+      <div class="section-num">Closing</div>
+      <h2 class="section-title">The path forward</h2>
+
+      <p class="prose">
+        The communities living beneath flight paths have been telling regulators for decades
+        that the noise contour maps do not reflect their experience. The reason is not that
+        the maps are drawn incorrectly — it is that the metric the maps are built on was
+        calibrated against annoyance surveys from an era before the physiological mechanisms
+        of noise-induced disease were understood, and that it has not been updated to reflect
+        fifty years of subsequent research.
+      </p>
+      <p class="prose">
+        The people who built and maintain those frameworks were not acting in bad faith.
+        They were using the best available tools. Now we have new tools.
+      </p>
+      <p class="prose">
+        The path forward is to add event-based, psychoacoustic measurement to the regulatory
+        toolkit — not as a replacement for existing approaches, but as the necessary
+        complement that the health evidence has always demanded. Communities deserve planning
+        decisions made with data that reflects what actually happens to the human body
+        beneath those flight paths.
+      </p>
+      <p class="prose">That is what we are building toward.</p>
+
+      <!-- BIBLIOGRAPHY -->
+      <hr class="section-divider">
+      <div class="section-num">Bibliography</div>
+      <h2 class="section-title">Sources and references</h2>
+
+      <div class="bib">
+
+        <div class="bib-item">
+          <div class="bib-label">HYENA Study</div>
+          <div>Jarup, L., Babisch, W., Houthuijs, D., Pershagen, G., Katsouyanni, K.,
+          Cadum, E., … Vigna-Taglianti, F. (2008).
+          <span class="bib-title">Hypertension and Exposure to Noise Near Airports:
+          the HYENA Study.</span>
+          Environmental Health Perspectives, 116(3), 329–333.
+          Health Effects of Noise Near Airports study, European Commission, 2002–2006.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">RANCH Study</div>
+          <div>Stansfeld, S.A., Berglund, B., Clark, C., Lopez-Barrio, I., Fischer, P.,
+          Öhrström, E., … Hygge, S. (2005).
+          <span class="bib-title">Aircraft and Road Traffic Noise and Children's Cognition
+          and Health: A Cross-National Study.</span>
+          The Lancet, 365(9475), 1942–1949.
+          Road Traffic and Aircraft Noise Exposure and Children's Cognition and Health
+          study, European Commission, 2001–2005.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">WHO Guidelines</div>
+          <div>World Health Organization Regional Office for Europe. (2018).
+          <span class="bib-title">Environmental Noise Guidelines for the European Region.</span>
+          Copenhagen: WHO Regional Office for Europe. ISBN 978-92-890-5356-3.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">FAA Noise Standard</div>
+          <div>Federal Aviation Administration. (1981).
+          <span class="bib-title">Noise Standards: Aircraft Type and Airworthiness
+          Certification.</span> 14 CFR Part 36. Adoption of Ldn as standard metric for
+          aviation noise assessment under FAA Order 1050.1.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">EPA Ldn Development</div>
+          <div>U.S. Environmental Protection Agency, Office of Noise Abatement and Control.
+          (1974).
+          <span class="bib-title">Information on Levels of Environmental Noise Requisite
+          to Protect Public Health and Welfare with an Adequate Margin of Safety.</span>
+          EPA 550/9-74-004. Washington, DC: EPA.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">Psychoacoustic Standards</div>
+          <div>International Electrotechnical Commission. (2013).
+          <span class="bib-title">IEC 61672-1: Electroacoustics — Sound Level Meters —
+          Part 1: Specifications.</span> Geneva: IEC.<br>
+          International Organization for Standardization. (2017).
+          <span class="bib-title">ISO 532-1: Acoustics — Methods for Calculating
+          Loudness — Part 1: Zwicker Method.</span> Geneva: ISO.</div>
+        </div>
+
+        <div class="bib-item">
+          <div class="bib-label">TrueNoise Data</div>
+          <div>Krizan, M. (2026).
+          <span class="bib-title">TrueNoise Community Noise Observatory — Calibrated
+          psychoacoustic measurements, BWI departure corridor, Severn Maryland.</span>
+          Raw data, methodology, and validation available at
+          <a href="https://truenoise.org/data.html">truenoise.org/data.html</a>.</div>
+        </div>
+
+      </div>
+
+    </article>
+  </main>
+</div>
+
+</body>
+</html>
