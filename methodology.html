@@ -497,6 +497,63 @@
             offset adjustment — is the cleanest possible confirmation that the +99 dB external mic
             calibration offset is correct, stable, and free of drift.
           </p>
+
+          <p class="prose" style="margin-top:20px;"><strong>Expanded validation dataset</strong></p>
+          <p class="prose">
+            Subsequent calibration sessions have expanded the validation dataset with additional
+            simultaneous comparisons against the TA657A Type 2 reference meter. At a standardized
+            receptor position (1.2 m height, 1.5 m from façade, concrete patio, fur windshield
+            with characterized correction applied), three 737 takeoff overflights produced an
+            average app-vs-meter delta of <strong>+1.4 dBA</strong> (range 0.6–1.9 dBA) —
+            well within the ±2 dB IEC 61672 Class 2 unit-to-unit tolerance.
+          </p>
+          <p class="prose">
+            Same-session controlled bench tests against three reference noise sources revealed
+            a small spectral sensitivity bias in the microphone:
+          </p>
+          <table class="val-table">
+            <thead>
+              <tr>
+                <th>Reference source</th>
+                <th>App vs TA657A delta</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>White noise (flat spectrum)</td><td>−0.6 dBA</td><td>High-frequency content</td></tr>
+              <tr><td>Pink noise (1/f spectrum)</td><td>+0.6 dBA</td><td>Balanced spectrum</td></tr>
+              <tr><td>Brown noise (low-frequency)</td><td>+1.1 dBA</td><td>Low-frequency emphasis</td></tr>
+              <tr><td>737 takeoff overflight</td><td>+1.4 dBA (avg)</td><td>Jet exhaust mixing noise — heavily low-frequency</td></tr>
+            </tbody>
+          </table>
+          <p class="prose">
+            The ~1.7 dBA spread from high- to low-frequency reference sources reflects a modest
+            low-frequency sensitivity bias in the external microphone. The 737 takeoff result
+            (+1.4 dBA) is consistent with this bias — jet exhaust mixing noise is heavily
+            low-frequency-dominated, and the microphone reads slightly high for low-frequency
+            content. This is an honest characterization of the system's spectral behavior, not
+            a calibration failure. All comparisons fall within Class 2 tolerance.
+          </p>
+          <p class="prose">
+            Combined with the prior A320 approach result and the windshield insertion-loss
+            characterization, the validation dataset now spans <strong>two aircraft types</strong>,
+            <strong>two flight phases</strong> (approach and takeoff),
+            <strong>two microphones</strong> (internal and external), and
+            <strong>three controlled spectral references</strong>. All comparisons agree within
+            Class 2 tolerance.
+          </p>
+
+          <p class="prose" style="margin-top:20px;"><strong>Boundary reinforcement — receptor positioning</strong></p>
+          <p class="prose">
+            A separate set of measurements with the microphone resting on a vehicle door surface
+            produced app-vs-meter deltas of approximately +3.8 dBA. These were identified as
+            boundary-coupling artifacts from microphone placement — the hard surface acts as an
+            acoustic reflector, adding energy to the measurement — and are not treated as
+            calibration data. They instead empirically demonstrate the ~3 dB boundary
+            reinforcement effect that motivates the standardized receptor position used in all
+            TrueNoise field sessions: 1.2 m height, 1.5 m from any reflective surface, held
+            or mounted free of contact with hard structures.
+          </p>
         </div>
 
         <!-- SECTION 7: VALIDATION -->
@@ -560,7 +617,7 @@
 
           <div class="limitation">
             <div class="limitation-num">1</div>
-            <div class="limitation-body"><strong>The microphone is not IEC 61672 certified.</strong> It is a consumer omnidirectional condenser with a manufacturer-published frequency range but no individual calibration certificate or temperature-stability specification. We rely on empirical validation against the TA657A rather than traceable factory calibration. That said, the bare mic has been shown to match the TA657A across multiple noise types with no offset correction, and windshield insertion loss has been characterized and confirmed within published industry specifications — providing a level of empirical confidence beyond what a manufacturer specification alone would offer.</div>
+            <div class="limitation-body"><strong>The microphone is not IEC 61672 certified.</strong> It is a consumer omnidirectional condenser with a manufacturer-published frequency range but no individual calibration certificate or temperature-stability specification. We rely on empirical validation against the TA657A rather than traceable factory calibration. The expanded validation dataset — spanning two aircraft types, two flight phases, two microphones, and three controlled spectral references — confirms all comparisons fall within the ±2 dB IEC 61672 Class 2 unit-to-unit tolerance. A modest low-frequency sensitivity bias (~1.7 dB spread across spectral references) has been characterized and is consistent with observed aircraft measurement results. Windshield insertion loss has been confirmed within published industry specifications. The system provides a level of empirical confidence that exceeds what a manufacturer specification alone would offer, even without formal certification.</div>
           </div>
           <div class="limitation">
             <div class="limitation-num">2</div>
