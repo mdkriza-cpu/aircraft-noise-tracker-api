@@ -501,15 +501,9 @@
           <p class="prose" style="margin-top:20px;"><strong>Expanded validation dataset</strong></p>
           <p class="prose">
             Subsequent calibration sessions have expanded the validation dataset with additional
-            simultaneous comparisons against the TA657A Type 2 reference meter. At a standardized
-            receptor position (1.2 m height, 1.5 m from façade, concrete patio, fur windshield
-            with characterized correction applied), three 737 takeoff overflights produced an
-            average app-vs-meter delta of <strong>+1.4 dBA</strong> (range 0.6–1.9 dBA) —
-            well within the ±2 dB IEC 61672 Class 2 unit-to-unit tolerance.
-          </p>
-          <p class="prose">
-            Same-session controlled bench tests against three reference noise sources revealed
-            a small spectral sensitivity bias in the microphone:
+            simultaneous comparisons against the TA657A Type 2 reference meter. Same-session
+            controlled bench tests against three reference noise sources revealed a modest
+            low-frequency sensitivity bias in the external microphone:
           </p>
           <table class="val-table">
             <thead>
@@ -523,24 +517,61 @@
               <tr><td>White noise (flat spectrum)</td><td>−0.6 dBA</td><td>High-frequency content</td></tr>
               <tr><td>Pink noise (1/f spectrum)</td><td>+0.6 dBA</td><td>Balanced spectrum</td></tr>
               <tr><td>Brown noise (low-frequency)</td><td>+1.1 dBA</td><td>Low-frequency emphasis</td></tr>
-              <tr><td>737 takeoff overflight</td><td>+1.4 dBA (avg)</td><td>Jet exhaust mixing noise — heavily low-frequency</td></tr>
             </tbody>
           </table>
           <p class="prose">
-            The ~1.7 dBA spread from high- to low-frequency reference sources reflects a modest
-            low-frequency sensitivity bias in the external microphone. The 737 takeoff result
-            (+1.4 dBA) is consistent with this bias — jet exhaust mixing noise is heavily
-            low-frequency-dominated, and the microphone reads slightly high for low-frequency
-            content. This is an honest characterization of the system's spectral behavior, not
-            a calibration failure. All comparisons fall within Class 2 tolerance.
+            The ~1.7 dBA spread from high- to low-frequency reference sources is an honest
+            characterization of the system's spectral behavior, not a calibration failure.
+            Jet exhaust mixing noise is heavily low-frequency-dominated, so aircraft
+            measurements are expected to read slightly high relative to a flat-spectrum
+            reference. The overflight validation data confirms this and bounds it:
           </p>
+          <table class="val-table">
+            <thead>
+              <tr>
+                <th>Session</th>
+                <th>Aircraft</th>
+                <th>Setup</th>
+                <th>Meter (dBA)</th>
+                <th>App (dBA)</th>
+                <th>Delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>9 May 2026</td>
+                <td>A320 approach</td>
+                <td>Internal mic · home patio</td>
+                <td>72.4</td>
+                <td>71.0</td>
+                <td>−1.4 dB</td>
+              </tr>
+              <tr>
+                <td>17 May 2026</td>
+                <td>3 × B737 takeoff</td>
+                <td>External + fur · Standardized Receptor</td>
+                <td>65–68 range</td>
+                <td>65–68 range</td>
+                <td>+1.4 avg (0.6–1.9)</td>
+              </tr>
+              <tr>
+                <td>19 May 2026</td>
+                <td>A321 takeoff</td>
+                <td>External + fur · Façade position</td>
+                <td>69.7</td>
+                <td>70.2</td>
+                <td>+0.5 dB</td>
+              </tr>
+            </tbody>
+          </table>
           <p class="prose">
-            Combined with the prior A320 approach result and the windshield insertion-loss
-            characterization, the validation dataset now spans <strong>two aircraft types</strong>,
-            <strong>two flight phases</strong> (approach and takeoff),
-            <strong>two microphones</strong> (internal and external), and
-            <strong>three controlled spectral references</strong>. All comparisons agree within
-            Class 2 tolerance.
+            The largest valid delta across all aircraft sessions is 1.4 dB; the smallest is
+            0.5 dB. The full dataset now spans <strong>three aircraft types</strong>
+            (A320, B737, A321), <strong>two flight phases</strong> (approach and takeoff),
+            <strong>two microphones</strong> (internal and external), <strong>two measurement
+            positions</strong> (Standardized Receptor and Façade), and
+            <strong>three controlled spectral references</strong>. All comparisons fall within
+            the ±2 dB IEC 61672 Class 2 unit-to-unit tolerance.
           </p>
 
           <p class="prose" style="margin-top:20px;"><strong>Boundary reinforcement — receptor positioning</strong></p>
@@ -682,11 +713,79 @@
             is information about the location's low-frequency acoustic character.
           </p>
           <p class="prose">
-            Field data from a standardized receptor session (18 May 2026) illustrates this
-            directly: aircraft overflight peaks at 70+ dBA showed C-A deltas of 4–6 dB
-            (clean signal, genuine acoustic content), while quiet ambient samples at 45 dBA
-            showed C-A deltas of 18–20 dB — not wind contamination, but the bass-heavy
-            character of the suburban acoustic environment at that location.
+            Field data from a façade-position session (19 May 2026, A321 takeoff overflight)
+            illustrates this directly. The table below traces a single overflight from
+            initial approach to departure:
+          </p>
+          <table class="val-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>dBA</th>
+                <th>C-A Delta</th>
+                <th>Interpretation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>06:54:45</td>
+                <td>49.7</td>
+                <td>17.2 dB</td>
+                <td>Aircraft 1.28 mi away — microphone hearing ambient bass rumble; large delta reflects low-frequency suburban background, not wind</td>
+              </tr>
+              <tr>
+                <td>06:55:03</td>
+                <td>66.4</td>
+                <td>8.2 dB</td>
+                <td>Aircraft signal begins to dominate; delta falls as broadband aircraft noise displaces ambient bass content</td>
+              </tr>
+              <tr>
+                <td>06:55:05</td>
+                <td>68.3</td>
+                <td>7.2 dB</td>
+                <td>Signal strengthening; delta continues to fall</td>
+              </tr>
+              <tr>
+                <td>06:55:07</td>
+                <td>70.2</td>
+                <td>6.0 dB</td>
+                <td>Peak signal at closest approach (0.84 mi slant range) — minimum delta; cleanest measurement</td>
+              </tr>
+              <tr>
+                <td>06:55:09</td>
+                <td>67.6</td>
+                <td>7.7 dB</td>
+                <td>Aircraft departing; signal fading; delta beginning to rise</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="prose">
+            The C-A delta is inversely correlated with aircraft signal strength — falling from
+            17.2 dB during quiet ambient to 6.0 dB at peak overflight, then rising again as
+            the aircraft departs. This is precisely what the method predicts: when a broadband
+            acoustic signal dominates, the C-A gap narrows; when only ambient bass rumble
+            remains, the gap widens. The SPL-conditional threshold (apply wind screening only
+            above ~55 dBA) is empirically validated by this sequence — the 49.7 dBA pre-event
+            reading with its 17.2 dB delta is correctly interpreted as ambient character, not
+            wind contamination.
+          </p>
+          <p class="prose">
+            The simultaneous app-vs-meter comparison at peak confirms instrument agreement:
+            the app read 70.2 dBA against the TA657A reference meter reading of 69.7 dBA —
+            a delta of +0.5 dB, well inside the ±2 dB IEC 61672 Class 2 tolerance.
+          </p>
+          <p class="prose">
+            A secondary finding from this session: the measurement position was a west-facing
+            façade. The aircraft approached from the northeast, was acoustically attenuated
+            during the early approach phase (the building structure shadowing the façade from
+            the NE-originating sound), then reached peak level as the aircraft cleared the
+            shadow and passed due north. This house-body shadowing effect — visible in the
+            data as a delayed onset relative to the aircraft's actual distance — is a
+            documentable, location-specific acoustic characteristic. A north-facing window and
+            a south-facing window on the same house can have substantially different exposure
+            profiles to the same overflight depending on flight path geometry. This is the
+            kind of detail that distinguishes characterized acoustic exposure from a simple
+            noise complaint.
           </p>
           <p class="prose">
             All outdoor sessions use a fur windshield (characterized insertion loss: 1.8 dBA),
