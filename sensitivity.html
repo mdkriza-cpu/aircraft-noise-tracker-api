@@ -102,11 +102,52 @@
   .pwarn { color:var(--amber); font-weight:500; }
   .pbad  { color:var(--red);  font-weight:500; }
   .pnote { font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.5; }
+
+  .mobile-nav-bar { display:none; position:sticky; top:0; z-index:20; background:#fff;
+                border-bottom:1px solid var(--border); padding:12px 20px;
+                align-items:center; justify-content:space-between; }
+  .mobile-logo-s { font-size:16px; font-weight:600; color:var(--text); }
+  .mobile-logo-s span { color:var(--teal); }
+  .hamburger-s { background:none; border:1px solid var(--border); border-radius:6px;
+               padding:6px 10px; cursor:pointer; font-size:16px; }
+  .mobile-menu-s { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+                 background:rgba(0,0,0,0.4); z-index:100; }
+  .mobile-menu-s.open { display:block; }
+  .mobile-menu-panel-s { background:#fff; width:280px; height:100%;
+                       padding:20px 16px; overflow-y:auto; }
+  @media (max-width:768px) {
+    .mobile-nav-bar { display:flex; }
+    .topbar { display:none; }
+  }
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
+<div class="mobile-nav-bar">
+  <a href="index.html" style="text-decoration:none;">
+    <div class="mobile-logo-s">True<span>Noise</span></div>
+  </a>
+  <button class="hamburger-s" onclick="document.getElementById('sensMobileMenu').classList.add('open')">☰</button>
+</div>
+<div class="mobile-menu-s" id="sensMobileMenu"
+     onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="mobile-menu-panel-s">
+    <button style="background:none;border:none;font-size:22px;cursor:pointer;margin-bottom:16px;display:block;"
+            onclick="document.getElementById('sensMobileMenu').classList.remove('open')">✕</button>
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;">
+      True<span style="color:var(--teal)">Noise</span></div>
+    <a href="briefing.html" class="nav-item" style="display:flex;margin-bottom:2px;background:var(--teal-light);color:var(--teal-dark);font-weight:500;">❤ Health briefing</a>
+    <a href="dashboard.html" class="nav-item" style="display:flex;margin-bottom:2px;">📊 Dashboard</a>
+    <a href="flightpath.html" class="nav-item" style="display:flex;margin-bottom:2px;">🗺 Flight path analysis</a>
+    <a href="sensitivity.html" class="nav-item active" style="display:flex;margin-bottom:2px;">🎚 Altitude sensitivity</a>
+    <a href="measurement-gap.html" class="nav-item" style="display:flex;margin-bottom:2px;">📐 Measurement gap</a>
+    <a href="methodology.html" class="nav-item" style="display:flex;margin-bottom:2px;">🔬 Methodology</a>
+    <a href="data.html" class="nav-item" style="display:flex;margin-bottom:2px;">⬇ Download data</a>
+    <a href="about.html" class="nav-item" style="display:flex;">ℹ About &amp; Contact</a>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="topbar-left">
     <a href="index.html" class="logo-link">
