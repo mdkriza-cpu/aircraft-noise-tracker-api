@@ -258,11 +258,57 @@
     footer { padding: 16px 20px; flex-direction: column; gap: 8px; text-align: center; }
     .divider { margin: 0 20px; }
   }
+
+  .mobile-nav { display:none; position:sticky; top:0; z-index:20; background:#fff;
+                border-bottom:1px solid var(--border); padding:12px 20px;
+                align-items:center; justify-content:space-between; }
+  .mobile-logo { font-size:16px; font-weight:600; color:var(--text); }
+  .mobile-logo span { color:var(--teal); }
+  .hamburger { background:none; border:1px solid var(--border); border-radius:6px;
+               padding:6px 10px; cursor:pointer; font-size:16px; color:var(--text-muted); }
+  .mobile-menu { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+                 background:rgba(0,0,0,0.4); z-index:100; }
+  .mobile-menu.open { display:block; }
+  .mobile-menu-panel { background:#fff; width:280px; height:100%;
+                       padding:20px 16px; overflow-y:auto; }
+  .mobile-menu-close { background:none; border:none; font-size:22px; cursor:pointer;
+                       color:var(--text-muted); margin-bottom:16px; display:block; }
+  @media (max-width:768px) {
+    .mobile-nav { display:flex; }
+    header { display:none; }
+  }
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
+<div class="mobile-nav">
+  <a href="index.html" style="text-decoration:none;">
+    <div class="mobile-logo">True<span>Noise</span></div>
+  </a>
+  <button class="hamburger" onclick="openMenu()">☰</button>
+</div>
+<div class="mobile-menu" id="mobileMenu"
+     onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="mobile-menu-panel">
+    <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;">
+      True<span style="color:var(--teal)">Noise</span></div>
+    <div style="font-size:10px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Data</div>
+    <a href="dashboard.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">📊 Health dashboard</a>
+    <a href="dashboard.html#aircraft" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">✈ Aircraft analysis</a>
+    <a href="dashboard.html#time" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">🕐 Time patterns</a>
+    <div style="font-size:10px;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px;">Research</div>
+    <a href="briefing.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;background:var(--teal-light);color:var(--teal-dark);font-weight:500;">❤ Health briefing</a>
+    <a href="flightpath.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">🗺 Flight path analysis</a>
+    <a href="sensitivity.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">🎚 Altitude sensitivity</a>
+    <a href="measurement-gap.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">📐 The measurement gap</a>
+    <a href="methodology.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">🔬 Methodology</a>
+    <a href="data.html" class="nav-item" onclick="closeMenu()" style="display:flex;margin-bottom:2px;">⬇ Download data</a>
+    <a href="about.html" class="nav-item" onclick="closeMenu()" style="display:flex;">ℹ About &amp; Contact</a>
+  </div>
+</div>
+
 <header>
   <div>
     <div class="logo-mark">
@@ -437,6 +483,9 @@ async function loadStats() {
 }
 
 loadStats();
+
+function openMenu(){document.getElementById('mobileMenu').classList.add('open');}
+function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
 </script>
 </body>
 </html>
